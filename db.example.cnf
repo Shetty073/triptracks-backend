@@ -1,0 +1,7 @@
+[client]
+database=triptracks
+host=YOUR_HOST_HERE
+port=YOUR_PORT_HERE
+user=YOUR_USERNAME_HERE
+password=YOUR_PASSWORD_HERE
+default-character-set=utf8
