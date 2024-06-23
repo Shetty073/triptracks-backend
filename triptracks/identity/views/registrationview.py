@@ -1,14 +1,20 @@
 # users/views.py
-from rest_framework import status
-from rest_framework.response import Response
+import traceback
 from rest_framework.views import APIView
 from triptracks.identity.serializers import RegistrationSerializer
+from triptracks.responses import bad_request, internal_server_error, success_created
 
 class RegistrationAPIView(APIView):
     def post(self, request):
-        serializer = RegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(serializer.data, status=status.HTTP_201_CREATED)
-        
-        return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+        try:
+            serializer = RegistrationSerializer(data=request.data)
+            if serializer.is_valid():
+                serializer.save()
+                return success_created(custom_message="User creation successful!")
+            
+            return bad_request(data={"errors": serializer.errors})
+    
+        except Exception as e:
+            trbk = traceback.format_exc()
+            print(e, trbk)
+            return internal_server_error()

@@ -1,17 +1,24 @@
+from hashlib import sha256
+import traceback
 from rest_framework.views import APIView
-from rest_framework import status
-from rest_framework.response import Response
-from rest_framework.authtoken.models import Token
+from knox.models import AuthToken
 
 from triptracks.identity.serializers import LoginSerializer
+from triptracks.responses import internal_server_error, success
 
 
 class LoginAPIView(APIView):
     def post(self, request):
-        serializer = LoginSerializer(data=request.data)
-        serializer.is_valid(raise_exception=True)
+        try:
+            serializer = LoginSerializer(data=request.data)
+            serializer.is_valid(raise_exception=True)
 
-        user = serializer.validated_data["user"]
-        token, _ = Token.objects.get_or_create(user=user)
+            user = serializer.validated_data["user"]
+            _, token = AuthToken.objects.create(user)
 
-        return Response({"token": token.key}, status=status.HTTP_200_OK)
+            return success({"token": token})
+        
+        except Exception as e:
+            trbk = traceback.format_exc()
+            print(e, trbk)
+            return internal_server_error()

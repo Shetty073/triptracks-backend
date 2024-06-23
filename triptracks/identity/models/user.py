@@ -1,5 +1,7 @@
+from string import ascii_lowercase, digits
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.db import models
+from shortuuid.django_fields import ShortUUIDField
 
 
 class AppUserManager(BaseUserManager):
@@ -28,6 +30,12 @@ class AppUserManager(BaseUserManager):
 
 class AppUser(AbstractUser):
     email = models.EmailField(unique=True)
+    username = ShortUUIDField(
+        length=16,
+        max_length=40,
+        prefix="id_",
+        alphabet=f"{ascii_lowercase}{digits}"
+    )
 
     # Additional fields here
     USERNAME_FIELD = "email"

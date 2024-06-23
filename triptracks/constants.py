@@ -1,6 +1,6 @@
 
 ErrorMessages = {
-    400: "Sending us garbage will not be",
+    400: "Sending us garbage will not be tolerated! Our servers are not hungry for trash. Please send valid data and try again.",
     401: "Access denied! This area is for VIPs only. Please present your secret handshake at the door.",
     402: "Uh-oh! Looks like the internet toll booth is demanding a toll. Don't worry, we accept virtual hugs as payment. Send one our way, and we'll let you through!",
     403: "Stop right there! This area is off-limits. Only unicorns and wizards can access it. Try a different path, mortal!",
