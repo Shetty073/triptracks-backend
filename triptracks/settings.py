@@ -44,6 +44,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'knox',
     'triptracks.identity',
+    'triptracks.vehicle_service',
 ]
 
 MIDDLEWARE = [

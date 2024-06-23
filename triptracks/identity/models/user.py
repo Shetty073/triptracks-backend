@@ -1,5 +1,6 @@
 from string import ascii_lowercase, digits
 from django.contrib.auth.models import AbstractUser, BaseUserManager
+from django.contrib import admin
 from django.db import models
 from shortuuid.django_fields import ShortUUIDField
 
@@ -42,3 +43,6 @@ class AppUser(AbstractUser):
     REQUIRED_FIELDS = []
 
     objects = AppUserManager()
+
+class AppUserAdmin(admin.ModelAdmin):
+  list_display = ("id", "first_name", "last_name", "email", "is_staff", "is_superuser")

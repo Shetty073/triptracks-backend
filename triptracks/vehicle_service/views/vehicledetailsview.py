@@ -1,16 +1,21 @@
 # users/views.py
 import traceback
 from rest_framework.views import APIView
-from triptracks.identity.serializers import RegistrationSerializer
+from knox.auth import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from triptracks.vehicle_service.serializers import VehicleDetailsSerializer
 from triptracks.responses import bad_request, internal_server_error, success_created
 
-class RegistrationAPIView(APIView):
+class VehicleDetailsAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
     def post(self, request):
         try:
-            serializer = RegistrationSerializer(data=request.data)
+            serializer = VehicleDetailsSerializer(data=request.data, context={'request': request})
             if serializer.is_valid():
                 serializer.save()
-                return success_created(custom_message="User created successfully!")
+                return success_created(custom_message="Vehicle saved successfully!")
             
             return bad_request(data={"errors": serializer.errors})
     

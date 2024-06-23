@@ -1,0 +1,1 @@
+from .vehicledetailsserializer import VehicleDetailsSerializer

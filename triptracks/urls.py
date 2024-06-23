@@ -22,4 +22,5 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # path('api-auth/', include('rest_framework.urls')),
     path('identity/', include('triptracks.identity.urls')),
+    path('vehicle/', include('triptracks.vehicle_service.urls')),
 ]

@@ -1,5 +1,6 @@
 import uuid
 from rest_framework import serializers
+from triptracks.common_utils import is_none_or_empty
 from triptracks.identity.models import AppUser
 
 class RegistrationSerializer(serializers.ModelSerializer):
@@ -10,28 +11,19 @@ class RegistrationSerializer(serializers.ModelSerializer):
         model = AppUser
         fields = ["email", "password", "password_confirm", "first_name", "last_name"]
 
-    def validate(self, data):
-        def is_empty(val: str):
-            if not val:
-                return False
-            
-            if len(val.strip()) < 1:
-                return False
-            
-            return True
-        
+    def validate(self, data):        
         first_name = data.get("first_name")
         last_name = data.get("last_name")
         email = data.get("email")
         password = data.get("password")
         password_confirm = data.get("password_confirm")
 
-        if not all([is_empty(first_name), is_empty(last_name), is_empty(email)]):
+        if not all([is_none_or_empty(first_name), is_none_or_empty(last_name), is_none_or_empty(email)]):
             raise serializers.ValidationError("Mandatory parameters should not be empty")
 
         if password != password_confirm:
             raise serializers.ValidationError("Password and confirm_password should match")
-        
+
         return data
 
     def create(self, validated_data):
