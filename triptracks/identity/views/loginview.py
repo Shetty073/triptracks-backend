@@ -1,5 +1,5 @@
-from hashlib import sha256
 import traceback
+from django.contrib.auth.signals import user_logged_in
 from rest_framework.views import APIView
 from knox.models import AuthToken
 
@@ -15,6 +15,9 @@ class LoginAPIView(APIView):
 
             user = serializer.validated_data["user"]
             _, token = AuthToken.objects.create(user)
+
+            user_logged_in.send(sender=user.__class__,
+                            request=request, user=user)
 
             return success({"token": token})
         
