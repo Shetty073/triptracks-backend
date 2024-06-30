@@ -1,14 +1,38 @@
 # users/views.py
 import traceback
+from django.forms.models import model_to_dict
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from triptracks.vehicle_service.models.vehicle import Vehicle
 from triptracks.vehicle_service.serializers import VehicleDetailsSerializer
-from triptracks.responses import bad_request, internal_server_error, success_created
+from triptracks.responses import bad_request, internal_server_error, success, success_created
 
 class VehicleDetailsAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
+
+    def get(self, request, id=None):
+        try:
+            if id:
+                vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
+                if vehicle:
+                    return success(data=model_to_dict(vehicle))
+                
+                else:
+                    return bad_request(custom_message="Vehicle with that id does not exist")
+            
+            else:
+                vehicles = Vehicle.objects.filter(owner=request.user).all()
+                if vehicles:
+                    return success(data=vehicles.values())
+            
+            return bad_request(custom_message="Vehicle with that id does not exist")
+        
+        except Exception as e:
+            trbk = traceback.format_exc()
+            print(e, trbk)
+            return internal_server_error()
 
     def post(self, request):
         try:
@@ -19,6 +43,22 @@ class VehicleDetailsAPIView(APIView):
             
             return bad_request(data={"errors": serializer.errors})
     
+        except Exception as e:
+            trbk = traceback.format_exc()
+            print(e, trbk)
+            return internal_server_error()
+        
+    def delete(self, request, id=None):
+        try:
+            if id:
+                vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
+                if vehicle:
+                    vehicle.delete()
+
+                    return success_created(custom_message="Vehicle deleted successfully!")
+            
+            return bad_request(custom_message="Vehicle with that id does not exist")
+        
         except Exception as e:
             trbk = traceback.format_exc()
             print(e, trbk)
