@@ -6,7 +6,7 @@ from knox.auth import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from triptracks.vehicle_service.models.vehicle import Vehicle
 from triptracks.vehicle_service.serializers import VehicleDetailsSerializer
-from triptracks.responses import bad_request, internal_server_error, success, success_created
+from triptracks.responses import bad_request, internal_server_error, success, success_created, success_updated
 
 class VehicleDetailsAPIView(APIView):
     authentication_classes = [TokenAuthentication]
@@ -48,6 +48,28 @@ class VehicleDetailsAPIView(APIView):
             print(e, trbk)
             return internal_server_error()
         
+    def patch(self, request, id=None):
+        try:
+            if id:
+                req_data = request.data
+                req_data["method"] = "PATCH"
+                serializer = VehicleDetailsSerializer(data=req_data, context={'request': request})
+                if serializer.is_valid():
+                    vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
+                    serializer.update(instance=vehicle)
+
+                    return success_updated(custom_message="Vehicle updated successfully!")
+                
+                else:
+                    return bad_request(data={"errors": serializer.errors})
+            
+            return bad_request(custom_message="Vehicle with that id does not exist")
+        
+        except Exception as e:
+            trbk = traceback.format_exc()
+            print(e, trbk)
+            return internal_server_error()
+
     def delete(self, request, id=None):
         try:
             if id:
