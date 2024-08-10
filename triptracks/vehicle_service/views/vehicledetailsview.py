@@ -56,7 +56,7 @@ class VehicleDetailsAPIView(APIView):
                 serializer = VehicleDetailsSerializer(data=req_data, context={'request': request})
                 if serializer.is_valid():
                     vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
-                    serializer.update(instance=vehicle)
+                    serializer.update(instance=vehicle, validated_data=req_data)
 
                     return success_updated(custom_message="Vehicle updated successfully!")
                 

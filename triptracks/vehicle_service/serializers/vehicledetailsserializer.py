@@ -4,6 +4,12 @@ from triptracks.common_utils import is_none_or_empty
 
 class VehicleDetailsSerializer(serializers.ModelSerializer):
     id = serializers.IntegerField(read_only=True)
+    name = serializers.CharField(required=False, allow_blank=True)
+    make = serializers.CharField(required=False, allow_blank=True)
+    model = serializers.CharField(required=False, allow_blank=True)
+    type = serializers.ChoiceField(choices=Vehicle.TYPE_CHOICES, required=False, allow_blank=True)
+    fuel_type = serializers.ChoiceField(choices=Vehicle.FUEL_TYPE_CHOICES, required=False, allow_blank=True)
+    mileage = serializers.DecimalField(max_digits=4, decimal_places=2, required=False, allow_null=True)
 
     class Meta:
         model = Vehicle
@@ -20,11 +26,9 @@ class VehicleDetailsSerializer(serializers.ModelSerializer):
         mileage = data.get("mileage")
 
         if data.get("method") == "PATCH":
-            print("Inside here")
             if not any([is_none_or_empty(name), is_none_or_empty(make), is_none_or_empty(model), is_none_or_empty(type), is_none_or_empty(fuel_type), is_none_or_empty(mileage)]):
                 raise serializers.ValidationError("Mandatory parameters should not be empty")
         else:
-            print("Inside here")
             if not all([is_none_or_empty(name), is_none_or_empty(make), is_none_or_empty(model), is_none_or_empty(type), is_none_or_empty(fuel_type), is_none_or_empty(mileage)]):
                 raise serializers.ValidationError("Mandatory parameters should not be empty")
         
