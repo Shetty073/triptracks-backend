@@ -3,6 +3,7 @@ from django.contrib.auth.signals import user_logged_in
 from rest_framework.views import APIView
 from knox.models import AuthToken
 
+from triptracks.logger import logger
 from triptracks.identity.serializers import LoginSerializer
 from triptracks.responses import internal_server_error, success
 
@@ -23,5 +24,5 @@ class LoginAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            print(e, trbk)
+            logger.error(f"{e}, {trbk}")
             return internal_server_error()

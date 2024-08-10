@@ -29,9 +29,15 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-nm&f^=@+fu!br-4wtipco=(^73o7ho+rbpb+7zkw2#qh$9!&7f'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = True if os.getenv('ENV', 'DEV') == 'DEV' else False
 
-ALLOWED_HOSTS = []
+ALLOWED_HOSTS = [
+    'localhost',
+]
+
+CORS_ALLOWED_ORIGINS = [
+    'http://localhost:8000',
+]
 
 # Application definition
 INSTALLED_APPS = [
@@ -42,6 +48,7 @@ INSTALLED_APPS = [
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'rest_framework',
+    'corsheaders',
     'knox',
     'triptracks.identity',
     'triptracks.vehicle_service',
@@ -55,6 +62,7 @@ MIDDLEWARE = [
     'django.contrib.auth.middleware.AuthenticationMiddleware',
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
+    'corsheaders.middleware.CorsMiddleware',
 ]
 
 ROOT_URLCONF = 'triptracks.urls'
@@ -134,6 +142,104 @@ REST_KNOX = {
 }
 
 AUTH_USER_MODEL = 'identity.AppUser'
+
+LOGGING = {
+    'version': 1,
+    'disable_existing_loggers': False,
+    'formatters': {
+        'verbose': {
+            'format': '{levelname} {asctime} {module} {message}',
+            'style': '{',
+        },
+        'simple': {
+            'format': '{levelname} {message}',
+            'style': '{',
+        },
+    },
+    'handlers': {
+        'console_debug': {
+            'level': 'DEBUG',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'console_info': {
+            'level': 'INFO',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'console_warning': {
+            'level': 'WARNING',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'console_error': {
+            'level': 'ERROR',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'console_critical': {
+            'level': 'CRITICAL',
+            'class': 'logging.StreamHandler',
+            'formatter': 'simple',
+        },
+        'file_debug': {
+            'level': 'DEBUG',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/debug.log'),
+            'formatter': 'verbose',
+        },
+        'file_info': {
+            'level': 'INFO',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/info.log'),
+            'formatter': 'verbose',
+        },
+        'file_warning': {
+            'level': 'WARNING',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/warning.log'),
+            'formatter': 'verbose',
+        },
+        'file_error': {
+            'level': 'ERROR',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/error.log'),
+            'formatter': 'verbose',
+        },
+        'file_critical': {
+            'level': 'CRITICAL',
+            'class': 'logging.FileHandler',
+            'filename': os.path.join(BASE_DIR, 'logs/critical.log'),
+            'formatter': 'verbose',
+        },
+    },
+    'loggers': {
+        'django': {
+            'handlers': [
+                'console_debug', 'console_info', 'console_warning', 
+                'console_error', 'console_critical',
+                'file_debug', 'file_info', 'file_warning', 
+                'file_error', 'file_critical'
+            ],
+            'level': 'DEBUG',
+            'propagate': True,
+        },
+        'myapp': {  
+            'handlers': [
+                'console_debug', 'console_info', 'console_warning', 
+                'console_error', 'console_critical',
+                'file_debug', 'file_info', 'file_warning', 
+                'file_error', 'file_critical'
+            ],
+            'level': 'DEBUG',
+            'propagate': False,
+        },
+    },
+}
+
+LOG_DIR = os.path.join(BASE_DIR, 'logs')
+if not os.path.exists(LOG_DIR):
+    os.makedirs(LOG_DIR)
 
 # Internationalization
 # https://docs.djangoproject.com/en/5.0/topics/i18n/

@@ -17,7 +17,6 @@ class VehicleDetailsSerializer(serializers.ModelSerializer):
         read_only_fields = ["id"]
 
     def validate(self, data):
-        print(data)
         name = data.get("name")
         make = data.get("make")
         model = data.get("model")

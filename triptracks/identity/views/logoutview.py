@@ -4,6 +4,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
 
+from triptracks.logger import logger
 from triptracks.responses import bad_request, internal_server_error, success_updated
 
 
@@ -26,5 +27,5 @@ class LogoutAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            print(e, trbk)
+            logger.error(f"{e}, {trbk}")
             return internal_server_error()

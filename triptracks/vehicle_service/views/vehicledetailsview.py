@@ -4,6 +4,7 @@ from django.forms.models import model_to_dict
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from triptracks.logger import logger
 from triptracks.vehicle_service.models.vehicle import Vehicle
 from triptracks.vehicle_service.serializers import VehicleDetailsSerializer
 from triptracks.responses import bad_request, internal_server_error, success, success_created, success_updated
@@ -31,7 +32,7 @@ class VehicleDetailsAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            print(e, trbk)
+            logger.error(f"{e}, {trbk}")
             return internal_server_error()
 
     def post(self, request):
@@ -45,7 +46,7 @@ class VehicleDetailsAPIView(APIView):
     
         except Exception as e:
             trbk = traceback.format_exc()
-            print(e, trbk)
+            logger.error(f"{e}, {trbk}")
             return internal_server_error()
         
     def patch(self, request, id=None):
@@ -67,7 +68,7 @@ class VehicleDetailsAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            print(e, trbk)
+            logger.error(f"{e}, {trbk}")
             return internal_server_error()
 
     def delete(self, request, id=None):
@@ -83,5 +84,5 @@ class VehicleDetailsAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            print(e, trbk)
+            logger.error(f"{e}, {trbk}")
             return internal_server_error()
