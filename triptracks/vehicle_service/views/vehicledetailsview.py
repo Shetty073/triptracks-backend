@@ -1,6 +1,7 @@
-# users/views.py
 import traceback
 from django.forms.models import model_to_dict
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import NotFound
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
@@ -25,6 +26,16 @@ class VehicleDetailsAPIView(APIView):
             
             else:
                 vehicles = Vehicle.objects.filter(owner=request.user).all()
+                if request.GET.get('page'):
+                    paginator = PageNumberPagination()
+                    try:
+                        paged_vehicles = paginator.paginate_queryset(vehicles, request)
+                    except NotFound:
+                        return bad_request(custom_message='Invalid page number')
+                    vehicle_serializer = VehicleDetailsSerializer(paged_vehicles, many=True)
+
+                    return success(data=vehicle_serializer.data)
+
                 if vehicles:
                     return success(data=vehicles.values())
             

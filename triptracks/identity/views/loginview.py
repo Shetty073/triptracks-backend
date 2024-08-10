@@ -5,14 +5,15 @@ from knox.models import AuthToken
 
 from triptracks.logger import logger
 from triptracks.identity.serializers import LoginSerializer
-from triptracks.responses import internal_server_error, success
+from triptracks.responses import forbidden, internal_server_error, success
 
 
 class LoginAPIView(APIView):
     def post(self, request):
         try:
             serializer = LoginSerializer(data=request.data)
-            serializer.is_valid(raise_exception=True)
+            if not serializer.is_valid():
+                return forbidden(data={"errors": serializer.errors})
 
             user = serializer.validated_data["user"]
             _, token = AuthToken.objects.create(user)
