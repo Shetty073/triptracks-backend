@@ -45,4 +45,7 @@ class AppUser(AbstractUser):
     objects = AppUserManager()
 
 class AppUserAdmin(admin.ModelAdmin):
-  list_display = ("id", "first_name", "last_name", "email", "is_staff", "is_superuser")
+    list_display = ("id", "first_name", "last_name", "email", "is_staff", "is_superuser")
+    search_fields = ("first_name", "last_name", "email",)
+    list_filter = ("date_joined", "is_staff", "is_superuser")
+    ordering = ("-date_joined",)

@@ -24,6 +24,11 @@ class Vehicle(models.Model):
     fuel_type = models.CharField(blank=False, null=False, choices=FUEL_TYPE_CHOICES, max_length=10)
     mileage = models.DecimalField(blank=False, null=False, max_digits=4, decimal_places=2)
     owner = models.ForeignKey(AppUser, related_name="vehicles", on_delete=models.CASCADE)
+    created_at = models.DateTimeField(auto_now_add=True)
+    updated_at = models.DateTimeField(auto_now=True)
 
 class VehicleAdmin(admin.ModelAdmin):
-  list_display = ("id", "name", "type", "fuel_type", "owner")
+    list_display = ("id", "name", "type", "fuel_type", "owner")
+    search_fields = ("name",)
+    list_filter = ("type", "fuel_type", "owner")
+    ordering = ("-created_at",)

@@ -12,10 +12,16 @@ class Trip(models.Model):
         MinValueValidator(-90.0), 
         MaxValueValidator(90.0)
     ]
+    
     LONG_VALIDATOR = [
         MinValueValidator(-100.0), 
         MaxValueValidator(100.0)
     ]
+
+    DISTANCE_UNIT_TYPE_CHOICES = {
+        "km": "Km",
+        "mile": "Mile"
+    }
 
     id = models.AutoField(auto_created=True, primary_key=True)
     origin_location = models.CharField(blank=False, null=False, max_length=100)
@@ -25,6 +31,8 @@ class Trip(models.Model):
     destination_lat = models.FloatField(blank=True, null=True, default=0.0, validators=LAT_VALIDATOR)
     destination_long = models.FloatField(blank=True, null=True, default=0.0, validators=LONG_VALIDATOR)
     distance = models.DecimalField(blank=False, null=False, max_digits=7, decimal_places=2)
+    distance_unit = models.CharField(blank=False, null=False, choices=DISTANCE_UNIT_TYPE_CHOICES, max_length=12)
+    average_distance_per_day = models.DecimalField(blank=False, null=False, max_digits=7, decimal_places=2)
     vehicle = models.ForeignKey(Vehicle, related_name="trips", null=True, on_delete=models.SET_NULL)
     fuel_cost_per_unit = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
     fuel_cost = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
@@ -44,4 +52,7 @@ class Trip(models.Model):
     updated_at = models.DateTimeField(auto_now=True)
 
 class TripAdmin(admin.ModelAdmin):
-  list_display = ("id", "origin_location", "destination_location", "distance", "organizer")
+    list_display = ("id", "origin_location", "destination_location", "distance", "organizer")
+    search_fields = ("origin_location", "destination_location",)
+    list_filter = ("organizer", "created_by", "updated_by")
+    ordering = ("-created_at",)
