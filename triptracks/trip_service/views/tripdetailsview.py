@@ -1,0 +1,79 @@
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import NotFound
+from rest_framework.views import APIView
+from knox.auth import TokenAuthentication
+from rest_framework.permissions import IsAuthenticated
+from triptracks.logger import logger
+from triptracks.trip_service.models import Trip
+from triptracks.trip_service.serializers import TripDetailsSerializer
+from triptracks.responses import bad_request, internal_server_error, success, success_created, success_updated
+
+class TripDetailsAPIView(APIView):
+    authentication_classes = [TokenAuthentication]
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, id=None):
+        try:
+            if id:
+                trip = Trip.objects.filter(id=id, organizer=request.user).first()  # Ensure it's filtered by the current user
+                if trip:
+                    serializer = TripDetailsSerializer(trip)
+                    return success(data=serializer.data)
+                else:
+                    return bad_request(custom_message="Trip with that ID does not exist.")
+            else:
+                trips = Trip.objects.filter(organizer=request.user).all()
+                if request.GET.get('page'):
+                    paginator = PageNumberPagination()
+                    try:
+                        paged_trips = paginator.paginate_queryset(trips, request)
+                    except NotFound:
+                        return bad_request(custom_message='Invalid page number')
+                    serializer = TripDetailsSerializer(paged_trips, many=True)
+                    return paginator.get_paginated_response(serializer.data)
+
+                if trips.exists():
+                    serializer = TripDetailsSerializer(trips, many=True)
+                    return success(data=serializer.data)
+                return bad_request(custom_message="No trips available.")
+        except Exception as e:
+            logger.error(f"Error fetching trip(s): {e}")
+            return internal_server_error()
+
+    def post(self, request):
+        try:
+            serializer = TripDetailsSerializer(data=request.data, context={'request': request})
+            if serializer.is_valid():
+                serializer.save(organizer=request.user)  # Associate the trip with the current user
+                return success_created(custom_message="Trip saved successfully!", data=serializer.data)
+            return bad_request(data={"errors": serializer.errors})
+        except Exception as e:
+            logger.error(f"Error creating trip: {e}")
+            return internal_server_error()
+
+    def patch(self, request, id=None):
+        try:
+            if id:
+                trip = Trip.objects.filter(id=id, organizer=request.user).first()
+                if trip:
+                    serializer = TripDetailsSerializer(trip, data=request.data, partial=True, context={'request': request})
+                    if serializer.is_valid():
+                        serializer.save()
+                        return success_updated(custom_message="Trip updated successfully!", data=serializer.data)
+                    return bad_request(data={"errors": serializer.errors})
+                return bad_request(custom_message="Trip with that ID does not exist.")
+        except Exception as e:
+            logger.error(f"Error updating trip: {e}")
+            return internal_server_error()
+
+    def delete(self, request, id=None):
+        try:
+            if id:
+                trip = Trip.objects.filter(id=id, organizer=request.user).first()
+                if trip:
+                    trip.delete()
+                    return success_created(custom_message="Trip deleted successfully!")
+                return bad_request(custom_message="Trip with that ID does not exist.")
+        except Exception as e:
+            logger.error(f"Error deleting trip: {e}")
+            return internal_server_error()
