@@ -15,7 +15,7 @@ class TripDetailsAPIView(APIView):
     def get(self, request, id=None):
         try:
             if id:
-                trip = Trip.objects.filter(id=id, organizer=request.user).first()  # Ensure it's filtered by the current user
+                trip = Trip.objects.filter(id=id).first()  # Ensure it's filtered by the current user
                 if trip:
                     serializer = TripDetailsSerializer(trip)
                     return success(data=serializer.data)

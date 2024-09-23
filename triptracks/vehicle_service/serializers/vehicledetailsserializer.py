@@ -1,53 +1,36 @@
 from rest_framework import serializers
 from triptracks.vehicle_service.models import Vehicle
 from triptracks.common_utils import is_none_or_empty
+from triptracks.logger import logger
 
 class VehicleDetailsSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(read_only=True)
-    name = serializers.CharField(required=False, allow_blank=True)
-    make = serializers.CharField(required=False, allow_blank=True)
-    model = serializers.CharField(required=False, allow_blank=True)
-    type = serializers.ChoiceField(choices=Vehicle.TYPE_CHOICES, required=False, allow_blank=True)
-    fuel_type = serializers.ChoiceField(choices=Vehicle.FUEL_TYPE_CHOICES, required=False, allow_blank=True)
-    mileage = serializers.DecimalField(max_digits=4, decimal_places=2, required=False, allow_null=True)
-
     class Meta:
         model = Vehicle
-        fields = ["id", "name", "make", "model", "type", "fuel_type", "mileage"]
+
+        fields = ['id', 'name', 'make', 'model', 'type', 'fuel_type', 'mileage']
+
         read_only_fields = ["id"]
 
     def validate(self, data):
-        name = data.get("name")
-        make = data.get("make")
-        model = data.get("model")
-        type = data.get("type")
-        fuel_type = data.get("fuel_type")
-        mileage = data.get("mileage")
+        required_fields = ['name', 'make', 'model', 'type', 'fuel_type', 'mileage']
 
-        if data.get("method") == "PATCH":
-            if not any([is_none_or_empty(name), is_none_or_empty(make), is_none_or_empty(model), is_none_or_empty(type), is_none_or_empty(fuel_type), is_none_or_empty(mileage)]):
-                raise serializers.ValidationError("Mandatory parameters should not be empty")
-        else:
-            if not all([is_none_or_empty(name), is_none_or_empty(make), is_none_or_empty(model), is_none_or_empty(type), is_none_or_empty(fuel_type), is_none_or_empty(mileage)]):
-                raise serializers.ValidationError("Mandatory parameters should not be empty")
-        
+        missing_fields = [field for field in required_fields if is_none_or_empty(data.get(field))]
+
+        if missing_fields:
+            logger.error(f"Mandatory parameters should not be empty: {missing_fields} => payload: {data}")
+            raise serializers.ValidationError(f"Mandatory parameters should not be empty: {', '.join(missing_fields)}")
+
         return data
 
     def create(self, validated_data):
         validated_data['owner'] = self.context['request'].user
-        vehicle = Vehicle.objects.create(**validated_data)
 
+        vehicle = Vehicle.objects.create(**validated_data)
         return vehicle
     
     def update(self, instance, validated_data):
-        # Custom update method to handle partial updates
-        instance.name = validated_data.get('name', instance.name)
-        instance.make = validated_data.get('make', instance.make)
-        instance.model = validated_data.get('model', instance.model)
-        instance.type = validated_data.get('type', instance.type)
-        instance.fuel_type = validated_data.get('fuel_type', instance.fuel_type)
-        instance.mileage = validated_data.get('mileage', instance.mileage)
+        for field, value in validated_data.items():
+            setattr(instance, field, value)
 
         instance.save()
-
         return instance

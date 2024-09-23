@@ -14,3 +14,6 @@ ErrorMessages = {
     501: "Houston, we have a problem! This feature is still in the workshop, undergoing digital renovations. Stay tuned for updates!",
     503: "Hold the phone! Our servers are taking a siesta. They'll be back soon, fresh and ready to serve. In the meantime, enjoy some elevator music.",
 }
+
+class TripConfigs:
+    ACCOMODATION_DISTANCE_THRESHOLD = 0.125
