@@ -14,13 +14,13 @@ from datetime import timedelta
 import os
 from pathlib import Path
 from rest_framework.settings import api_settings
-import sys
 import pymysql
 pymysql.install_as_MySQLdb()
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
+SERVICE_NAME = 'triptracks'
 
 # Quick-start development settings - unsuitable for production
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
@@ -224,20 +224,20 @@ LOGGING = {
                 'file_debug', 'file_info', 'file_warning', 
                 'file_error', 'file_critical'
             ],
-            'level': 'DEBUG',
+            'level': 'INFO',
             'propagate': True,
         },
-        'myapp': {  
+        SERVICE_NAME: {
             'handlers': [
                 'console_debug', 'console_info', 'console_warning', 
                 'console_error', 'console_critical',
                 'file_debug', 'file_info', 'file_warning', 
                 'file_error', 'file_critical'
             ],
-            'level': 'DEBUG',
-            'propagate': False,
-        },
-    },
+            'level': 'DEBUG' if DEBUG else 'INFO',
+            'propagate': True,
+        }
+    }
 }
 
 LOG_DIR = os.path.join(BASE_DIR, 'logs')

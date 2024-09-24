@@ -27,5 +27,5 @@ class LogoutAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            logger.error(f"{e}, {trbk}")
+            logger.error(f"{e}, traceback: {trbk}")
             return internal_server_error()

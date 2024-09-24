@@ -7,9 +7,9 @@ class VehicleDetailsSerializer(serializers.ModelSerializer):
     class Meta:
         model = Vehicle
 
-        fields = ['id', 'name', 'make', 'model', 'type', 'fuel_type', 'mileage']
+        fields = ['id', 'name', 'make', 'model', 'type', 'fuel_type', 'mileage', 'created_at', 'updated_at']
 
-        read_only_fields = ["id"]
+        read_only_fields = ['id', 'created_at', 'updated_at']
 
     def validate(self, data):
         required_fields = ['name', 'make', 'model', 'type', 'fuel_type', 'mileage']

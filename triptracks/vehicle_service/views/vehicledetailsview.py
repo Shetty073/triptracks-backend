@@ -32,6 +32,7 @@ class VehicleDetailsAPIView(APIView):
                         paged_vehicles = paginator.paginate_queryset(vehicles, request)
                     except NotFound:
                         return bad_request(custom_message='Invalid page number')
+                    
                     vehicle_serializer = VehicleDetailsSerializer(paged_vehicles, many=True)
 
                     return success(data=vehicle_serializer.data)
@@ -43,7 +44,7 @@ class VehicleDetailsAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            logger.error(f"{e}, {trbk}")
+            logger.error(f"{e}, traceback: {trbk}")
             return internal_server_error()
 
     def post(self, request):
@@ -57,7 +58,7 @@ class VehicleDetailsAPIView(APIView):
     
         except Exception as e:
             trbk = traceback.format_exc()
-            logger.error(f"{e}, {trbk}")
+            logger.error(f"{e}, traceback: {trbk}")
             return internal_server_error()
         
     def patch(self, request, id=None):
@@ -79,7 +80,7 @@ class VehicleDetailsAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            logger.error(f"{e}, {trbk}")
+            logger.error(f"{e}, traceback: {trbk}")
             return internal_server_error()
 
     def delete(self, request, id=None):
@@ -95,5 +96,5 @@ class VehicleDetailsAPIView(APIView):
         
         except Exception as e:
             trbk = traceback.format_exc()
-            logger.error(f"{e}, {trbk}")
+            logger.error(f"{e}, traceback: {trbk}")
             return internal_server_error()

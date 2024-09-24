@@ -1,7 +1,5 @@
 import logging
+from django.conf import settings
 
 
-logger = logging.getLogger('triptracks')
-
-logger.setLevel(logging.DEBUG)
-
+logger = logging.getLogger(settings.SERVICE_NAME)

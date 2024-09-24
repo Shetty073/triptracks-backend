@@ -4,7 +4,7 @@ from django.contrib import admin
 from triptracks.identity.models.user import AppUser
 from django.core.validators import MinValueValidator, MaxValueValidator
 
-from triptracks.vehicle_service.models.vehicle import Vehicle
+from triptracks.trip_service.models.tripvehicle import TripVehicle
 
 
 class Trip(models.Model):
@@ -33,11 +33,7 @@ class Trip(models.Model):
     distance = models.DecimalField(blank=False, null=False, max_digits=7, decimal_places=2)
     distance_unit = models.CharField(blank=False, null=False, choices=DISTANCE_UNIT_TYPE_CHOICES, max_length=12)
     average_distance_per_day = models.DecimalField(blank=False, null=False, max_digits=7, decimal_places=2)
-    vehicle = models.ForeignKey(Vehicle, related_name="trips", null=True, on_delete=models.SET_NULL)
-    fuel_cost_per_unit = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
-    calculated_fuel_cost = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
-    final_fuel_cost = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
-    final_fuel_adjustments = models.CharField(blank=True, null=True, max_length=250)
+    vehicles = models.ManyToManyField(TripVehicle, related_name="trips")
     accomodation_days = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
     accomodation_cost_per_day = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
     calculated_accomodation_cost = models.DecimalField(blank=True, null=True, max_digits=11, decimal_places=2)
