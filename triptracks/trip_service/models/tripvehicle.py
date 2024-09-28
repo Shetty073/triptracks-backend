@@ -18,6 +18,14 @@ class TripVehicle(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['vehicle']),
+            models.Index(fields=['driver']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['updated_at']),
+        ]
+
 class TripVehicleAdmin(admin.ModelAdmin):
     list_display = ("id", "vehicle", "driver",)
     search_fields = ("origin_location", "destination_location",)

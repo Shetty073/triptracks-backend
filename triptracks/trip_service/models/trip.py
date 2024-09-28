@@ -49,6 +49,17 @@ class Trip(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['origin_location']),
+            models.Index(fields=['destination_location']),
+            models.Index(fields=['organizer']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['updated_at']),
+            models.Index(fields=['distance']),
+            models.Index(fields=['distance_unit']),
+        ]
+
 class TripAdmin(admin.ModelAdmin):
     list_display = ("id", "origin_location", "destination_location", "distance", "organizer")
     search_fields = ("origin_location", "destination_location",)

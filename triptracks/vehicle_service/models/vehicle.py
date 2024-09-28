@@ -27,6 +27,18 @@ class Vehicle(models.Model):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['name']),
+            models.Index(fields=['make']),
+            models.Index(fields=['model']),
+            models.Index(fields=['type']),
+            models.Index(fields=['fuel_type']),
+            models.Index(fields=['owner']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['updated_at']),
+        ]
+
 class VehicleAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "type", "fuel_type", "owner")
     search_fields = ("name",)

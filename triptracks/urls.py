@@ -23,4 +23,5 @@ urlpatterns = [
     path('identity/', include('triptracks.identity.urls')),
     path('vehicle/', include('triptracks.vehicle_service.urls')),
     path('trip/', include('triptracks.trip_service.urls')),
+    path('crew/', include('triptracks.crew_service.urls')),
 ]
