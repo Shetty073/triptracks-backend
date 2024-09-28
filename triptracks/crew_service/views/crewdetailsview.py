@@ -1,6 +1,8 @@
 import traceback
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.pagination import PageNumberPagination
+from rest_framework.exceptions import NotFound
 from knox.auth import TokenAuthentication
 from triptracks.crew_service.serializers.crewdetailserializer import CrewRelationshipSerializer, CrewRequestSerializer
 from triptracks.identity.models.user import AppUser
@@ -24,33 +26,71 @@ class CrewDetailsAPIView(APIView):
                 crew_members = CrewRelationship.objects.filter(
                     Q(user1=crew_user) | Q(user2=crew_user)
                 )
-
-                if crew_members.exists():
-                    serializer = CrewRelationshipSerializer(crew_members, many=True, context={'current_user_id': id})
-                    return success(data=serializer.data)
                 
-                return bad_request(custom_message=f"No crew members found for user {crew_user.email}.")
+                if not crew_members.exists():
+                    return bad_request(custom_message=f"No crew members found for user {crew_user.email}.")
+
+                if request.GET.get('page', 1):
+                    paginator = PageNumberPagination()
+                    try:
+                        paged_crew_members = paginator.paginate_queryset(crew_members, request)
+                        serializer = CrewRelationshipSerializer(paged_crew_members, many=True, context={'current_user_id': id})
+
+                        paginated_response = paginator.get_paginated_response(serializer.data)
+                        return success(data=paginated_response.data, custom_message="Crew details fetched successfully.")
+            
+                    except NotFound:
+                        return bad_request(custom_message='Invalid page number')
+                
+                else:
+                    return bad_request(custom_message='Invalid page number')
             
             else:
                 if request.GET.get('open_requests'):
                     crew_requests = CrewRequest.objects.filter(accepted=False, to_user=request.user)
-                    if crew_requests.exists():
-                        open_crew_requests = crew_requests.all()
-                        crew_request_serializer = CrewRequestSerializer(open_crew_requests, many=True)
-                        return success(data=crew_request_serializer.data, custom_message="New crew requests open")
+
+                    if not crew_requests.exists():
+                        return success(custom_message="No new request found")
+
+                    if request.GET.get('page', 1):
+                        paginator = PageNumberPagination()
+                        try:
+                            paged_crew_requests = paginator.paginate_queryset(crew_requests, request)
+                            serializer = CrewRequestSerializer(paged_crew_requests, many=True)
+
+                            paginated_response = paginator.get_paginated_response(serializer.data)
+                            return success(data=paginated_response.data, custom_message="Crew request details fetched successfully.")
+                
+                        except NotFound:
+                            return bad_request(custom_message='Invalid page number')
                     
-                    return success(custom_message="No new request found")
+                    else:
+                        return bad_request(custom_message='Invalid page number')
+
                 else:
                     # List all crew members for the authenticated user
                     crew_members = CrewRelationship.objects.filter(
                         Q(user1=request.user) | Q(user2=request.user)
                     )
 
-                    if crew_members.exists():
-                        serializer = CrewRelationshipSerializer(crew_members, many=True, context={'current_user_id': request.user.id})
-                        return success(data=serializer.data)
+                    if not crew_members.exists():
+                        return bad_request(custom_message=f"No crew members found for current user.")
+
+                    if request.GET.get('page', 1):
+                        paginator = PageNumberPagination()
+                        try:
+                            paged_crew_members = paginator.paginate_queryset(crew_members, request)
+                            serializer = CrewRelationshipSerializer(paged_crew_members, many=True, context={'current_user_id': id})
+
+                            paginated_response = paginator.get_paginated_response(serializer.data)
+                            return success(data=paginated_response.data, custom_message="Crew details fetched successfully.")
+                
+                        except NotFound:
+                            return bad_request(custom_message='Invalid page number')
                     
-                    return bad_request(custom_message="No crew members found.")
+                    else:
+                        return bad_request(custom_message='Invalid page number')
+
         except Exception as e:
             trbk = traceback.format_exc()
             logger.error(f"Error fetching crew: {e}, traceback: {trbk}")
@@ -117,6 +157,15 @@ class CrewDetailsAPIView(APIView):
                     return bad_request(custom_message="Unable to find the user in your crew list!")
                 
                 crew_relation.delete()
+
+                crew_request = CrewRequest.objects.filter(
+                    Q(from_user=request.user, to_user=crew_user, accepted=True) | 
+                    Q(from_user=crew_user, to_user=request.user, accepted=True)
+                ).first()
+
+                if crew_request:
+                    crew_request.delete()
+
                 return success_updated(custom_message="User removed from your crew successfully!")
             
             return bad_request(custom_message="Crew relationship ID is required.")
