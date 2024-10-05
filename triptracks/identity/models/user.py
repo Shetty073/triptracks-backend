@@ -44,6 +44,16 @@ class AppUser(AbstractUser):
 
     objects = AppUserManager()
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['first_name']),
+            models.Index(fields=['last_name']),
+            models.Index(fields=['email']),
+            models.Index(fields=['username']),
+            # Composite index (optional)
+            models.Index(fields=['first_name', 'last_name']),
+        ]
+
 class AppUserAdmin(admin.ModelAdmin):
     list_display = ("id", "first_name", "last_name", "email", "is_staff", "is_superuser")
     search_fields = ("first_name", "last_name", "email",)

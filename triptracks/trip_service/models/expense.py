@@ -15,6 +15,16 @@ class Expense(AbstractCostItem):
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
 
+    class Meta:
+        indexes = [
+            models.Index(fields=['trip']),
+            models.Index(fields=['paid_by']),
+            models.Index(fields=['created_by']),
+            models.Index(fields=['updated_by']),
+            models.Index(fields=['created_at']),
+            models.Index(fields=['updated_at']),
+        ]
+
 class ExpenseAdmin(admin.ModelAdmin):
     list_display = ("id", "name", "cost_per_unit", "no_of_units", "total_cost")
     search_fields = ("name",)

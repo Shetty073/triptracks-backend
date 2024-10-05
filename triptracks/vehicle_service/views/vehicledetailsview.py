@@ -5,6 +5,7 @@ from rest_framework.exceptions import NotFound
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
+from triptracks.identity.models.user import AppUser
 from triptracks.logger import logger
 from triptracks.vehicle_service.models.vehicle import Vehicle
 from triptracks.vehicle_service.serializers import VehicleDetailsSerializer
@@ -25,22 +26,28 @@ class VehicleDetailsAPIView(APIView):
                     return bad_request(custom_message="Vehicle with that id does not exist")
             
             else:
-                vehicles = Vehicle.objects.filter(owner=request.user).all()
-                if request.GET.get('page'):
+                if request.GET.get('user_id'):
+                    vehicles = Vehicle.objects.filter(owner=AppUser.objects.filter(id=request.GET.get('user_id')).first())
+                else:
+                    vehicles = Vehicle.objects.filter(owner=request.user)
+                
+                if not vehicles.exists():
+                    return bad_request(custom_message="No vehicle exists for the given user.")
+
+                if request.GET.get('page', 1):
                     paginator = PageNumberPagination()
                     try:
                         paged_vehicles = paginator.paginate_queryset(vehicles, request)
+                        vehicle_serializer = VehicleDetailsSerializer(paged_vehicles, many=True)
+
+                        paginated_response = paginator.get_paginated_response(vehicle_serializer.data)
+                        return success(data=paginated_response.data, custom_message="Vehicle details fetched successfully.")
+            
                     except NotFound:
                         return bad_request(custom_message='Invalid page number')
-                    
-                    vehicle_serializer = VehicleDetailsSerializer(paged_vehicles, many=True)
-
-                    return success(data=vehicle_serializer.data)
-
-                if vehicles:
-                    return success(data=vehicles.values())
-            
-            return bad_request(custom_message="Vehicle with that id does not exist")
+                
+                else:
+                    return bad_request(custom_message='Invalid page number')
         
         except Exception as e:
             trbk = traceback.format_exc()

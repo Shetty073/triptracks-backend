@@ -55,6 +55,7 @@ INSTALLED_APPS = [
     'triptracks.identity',
     'triptracks.vehicle_service',
     'triptracks.trip_service',
+    'triptracks.crew_service',
 ]
 
 MIDDLEWARE = [

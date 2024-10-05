@@ -22,21 +22,24 @@ class TripDetailsAPIView(APIView):
                     return success(data=serializer.data)
                 else:
                     return bad_request(custom_message="Trip with that ID does not exist.")
+                
             else:
-                trips = Trip.objects.filter(organizer=request.user).all()
-                if request.GET.get('page'):
+                trips = Trip.objects.filter(organizer=request.user)
+                if request.GET.get('page', 1):
                     paginator = PageNumberPagination()
                     try:
                         paged_trips = paginator.paginate_queryset(trips, request)
+                        serializer = TripDetailsSerializer(paged_trips, many=True)
+
+                        paginated_response = paginator.get_paginated_response(serializer.data)
+                        return success(data=paginated_response.data, custom_message="Trip details fetched successfully.")
+                    
                     except NotFound:
                         return bad_request(custom_message='Invalid page number')
-                    serializer = TripDetailsSerializer(paged_trips, many=True)
-                    return paginator.get_paginated_response(serializer.data)
+                    
+                else:
+                    return bad_request(custom_message='Invalid page number')
 
-                if trips.exists():
-                    serializer = TripDetailsSerializer(trips, many=True)
-                    return success(data=serializer.data)
-                return bad_request(custom_message="No trips available.")
         except Exception as e:
             trbk = traceback.format_exc()
             logger.error(f"Error fetching trip(s): {e}, traceback: {trbk}")
