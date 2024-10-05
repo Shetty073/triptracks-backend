@@ -3,6 +3,7 @@ from django.contrib.auth.signals import user_logged_in
 from rest_framework.views import APIView
 from knox.models import AuthToken
 
+from triptracks.crew_service.serializers.crewdetailserializer import AppUserSerializer
 from triptracks.logger import logger
 from triptracks.identity.serializers import LoginSerializer
 from triptracks.responses import forbidden, internal_server_error, success
@@ -20,8 +21,10 @@ class LoginAPIView(APIView):
 
             user_logged_in.send(sender=user.__class__,
                             request=request, user=user)
+            
+            app_serializer = AppUserSerializer(user)
 
-            return success({"token": token})
+            return success({"user": app_serializer.data, "token": token})
         
         except Exception as e:
             trbk = traceback.format_exc()
