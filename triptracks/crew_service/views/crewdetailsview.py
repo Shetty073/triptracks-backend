@@ -80,7 +80,7 @@ class CrewDetailsAPIView(APIView):
                         paginator = PageNumberPagination()
                         try:
                             paged_crew_members = paginator.paginate_queryset(crew_members, request)
-                            serializer = CrewRelationshipSerializer(paged_crew_members, many=True, context={'current_user_id': id})
+                            serializer = CrewRelationshipSerializer(paged_crew_members, many=True, context={'current_user_id': request.user.id})
 
                             paginated_response = paginator.get_paginated_response(serializer.data)
                             return success(data=paginated_response.data, custom_message="Crew details fetched successfully.")
