@@ -1,5 +1,4 @@
 # users/views.py
-import traceback
 from rest_framework.views import APIView
 from triptracks.logger import logger
 from triptracks.identity.serializers import RegistrationSerializer
@@ -16,6 +15,5 @@ class RegistrationAPIView(APIView):
             return bad_request(data={"errors": serializer.errors})
     
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"{e}, traceback: {trbk}")
+            logger.exception(f"{e}")
             return internal_server_error()

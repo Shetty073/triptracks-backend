@@ -1,4 +1,3 @@
-import traceback
 from rest_framework.views import APIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
@@ -92,8 +91,7 @@ class CrewDetailsAPIView(APIView):
                         return bad_request(custom_message='Invalid page number')
 
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error fetching crew: {e}, traceback: {trbk}")
+            logger.exception(f"Error fetching crew: {e}")
             return internal_server_error()
 
     def post(self, request):
@@ -112,8 +110,7 @@ class CrewDetailsAPIView(APIView):
             return bad_request(data={"errors": serializer.errors})
         
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error creating crew request: {e}, traceback: {trbk}")
+            logger.exception(f"Error creating crew request: {e}")
             return internal_server_error()
 
     def patch(self, request, id=None):
@@ -139,8 +136,7 @@ class CrewDetailsAPIView(APIView):
                 
             return bad_request(custom_message="Crew request ID is required.")
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error responding to crew request: {e}, traceback: {trbk}")
+            logger.exception(f"Error responding to crew request: {e}")
             return internal_server_error()
 
     def delete(self, request, id=None):
@@ -171,6 +167,5 @@ class CrewDetailsAPIView(APIView):
             return bad_request(custom_message="Crew relationship ID is required.")
         
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error deleting crew relationship: {e}, traceback: {trbk}")
+            logger.exception(f"Error deleting crew relationship: {e}")
             return internal_server_error()

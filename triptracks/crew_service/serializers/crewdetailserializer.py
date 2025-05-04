@@ -6,7 +6,7 @@ from triptracks.crew_service.models.crew import CrewRelationship, CrewRequest
 class AppUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = AppUser
-        fields = ('id', 'email', 'first_name', 'last_name', 'username')
+        fields = ('id', 'email', 'first_name', 'last_name', 'username', 'profile_photo')
         read_only_fields = ('id', 'username')
 
 class CrewRequestSerializer(serializers.ModelSerializer):

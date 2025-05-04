@@ -41,8 +41,7 @@ class TripDetailsAPIView(APIView):
                     return bad_request(custom_message='Invalid page number')
 
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error fetching trip(s): {e}, traceback: {trbk}")
+            logger.exception(f"Error fetching trip(s): {e}")
             return internal_server_error()
 
     def post(self, request):
@@ -53,8 +52,7 @@ class TripDetailsAPIView(APIView):
                 return success_created(custom_message="Trip saved successfully!", data=serializer.data)
             return bad_request(data={"errors": serializer.errors})
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error creating trip: {e}, traceback: {trbk}")
+            logger.exception(f"Error creating trip: {e}")
             return internal_server_error()
 
     def patch(self, request, id=None):
@@ -69,8 +67,7 @@ class TripDetailsAPIView(APIView):
                     return bad_request(data={"errors": serializer.errors})
                 return bad_request(custom_message="Trip with that ID does not exist.")
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error updating trip: {e}, traceback: {trbk}")
+            logger.exception(f"Error updating trip: {e}")
             return internal_server_error()
 
     def delete(self, request, id=None):
@@ -82,6 +79,5 @@ class TripDetailsAPIView(APIView):
                     return success_created(custom_message="Trip deleted successfully!")
                 return bad_request(custom_message="Trip with that ID does not exist.")
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"Error deleting trip: {e}, traceback: {trbk}")
+            logger.exception(f"Error deleting trip: {e}")
             return internal_server_error()

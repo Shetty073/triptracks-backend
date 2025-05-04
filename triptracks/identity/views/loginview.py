@@ -1,4 +1,3 @@
-import traceback
 from django.contrib.auth.signals import user_logged_in
 from rest_framework.views import APIView
 from knox.models import AuthToken
@@ -27,6 +26,5 @@ class LoginAPIView(APIView):
             return success({"user": app_serializer.data, "token": token})
         
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"{e}, traceback: {trbk}")
+            logger.exception(f"Exception in LoginAPIView: {e}")
             return internal_server_error()

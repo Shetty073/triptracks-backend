@@ -1,5 +1,4 @@
 from django.contrib.auth.signals import user_logged_out
-import traceback
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.views import APIView
 from knox.auth import TokenAuthentication
@@ -26,6 +25,5 @@ class LogoutAPIView(APIView):
             return bad_request(data={"errors": "Invalid user"})
         
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"{e}, traceback: {trbk}")
+            logger.exception(f"Exception in LogoutAPIView: {e}")
             return internal_server_error()

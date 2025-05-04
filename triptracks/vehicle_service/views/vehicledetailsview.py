@@ -50,8 +50,7 @@ class VehicleDetailsAPIView(APIView):
                     return bad_request(custom_message='Invalid page number')
         
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"{e}, traceback: {trbk}")
+            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
             return internal_server_error()
 
     def post(self, request):
@@ -64,8 +63,7 @@ class VehicleDetailsAPIView(APIView):
             return bad_request(data={"errors": serializer.errors})
     
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"{e}, traceback: {trbk}")
+            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
             return internal_server_error()
         
     def patch(self, request, id=None):
@@ -86,8 +84,7 @@ class VehicleDetailsAPIView(APIView):
             return bad_request(custom_message="Vehicle with that id does not exist")
         
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"{e}, traceback: {trbk}")
+            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
             return internal_server_error()
 
     def delete(self, request, id=None):
@@ -102,6 +99,5 @@ class VehicleDetailsAPIView(APIView):
             return bad_request(custom_message="Vehicle with that id does not exist")
         
         except Exception as e:
-            trbk = traceback.format_exc()
-            logger.error(f"{e}, traceback: {trbk}")
+            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
             return internal_server_error()
