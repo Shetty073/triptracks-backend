@@ -1,0 +1,1 @@
+from .tripdetailsview import TripDetailsAPIView

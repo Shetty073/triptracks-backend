@@ -1,0 +1,1 @@
+from .tripdetailsserializer import TripDetailsSerializer
