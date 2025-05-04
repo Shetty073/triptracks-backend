@@ -1,4 +1,6 @@
+import os
 from string import ascii_lowercase, digits
+from uuid import uuid4
 from django.contrib.auth.models import AbstractUser, BaseUserManager
 from django.contrib import admin
 from django.db import models
@@ -28,6 +30,10 @@ class AppUserManager(BaseUserManager):
 
         return self.create_user(email, password, **extra_fields)
 
+def user_profile_photo_path(instance, filename):
+    ext = filename.split('.')[-1]
+    filename = f"{uuid4().hex}.{ext}"
+    return os.path.join("profile_photos", str(instance.id), filename)
 
 class AppUser(AbstractUser):
     email = models.EmailField(unique=True)
@@ -36,6 +42,12 @@ class AppUser(AbstractUser):
         max_length=40,
         prefix="id_",
         alphabet=f"{ascii_lowercase}{digits}"
+    )
+    profile_photo = models.ImageField(
+        upload_to=user_profile_photo_path,
+        null=True,
+        blank=True,
+        default="default_avatar.png"  # optional: should exist in media/default_avatar.png
     )
 
     # Additional fields here
