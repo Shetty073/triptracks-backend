@@ -12,7 +12,7 @@ class ProfilePhotoAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
-    def post(self, request):
+    def patch(self, request):
         try:
             user = request.user
             photo = request.FILES.get("profile_photo")
