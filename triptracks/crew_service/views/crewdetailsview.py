@@ -3,7 +3,7 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound
 from knox.auth import TokenAuthentication
-from triptracks.crew_service.serializers.crewdetailserializer import CrewRelationshipSerializer, CrewRequestSerializer
+from triptracks.crew_service.serializers.crewdetailserializer import CrewRelationshipSerializer, CrewRequestSerializer, AppUserSerializer
 from triptracks.identity.models.user import AppUser
 from triptracks.logger import logger
 from django.db.models import Q
@@ -64,6 +64,30 @@ class CrewDetailsAPIView(APIView):
                             return bad_request(custom_message='Invalid page number')
                     
                     else:
+                        return bad_request(custom_message='Invalid page number')
+
+                elif request.GET.get('email') or request.GET.get('username'):
+                    email = request.GET.get('email')
+                    username = request.GET.get('username')
+
+                    filters = Q()
+                    if email:
+                        filters |= Q(email__icontains=email)
+                    if username:
+                        filters |= Q(username__icontains=username)
+
+                    users = AppUser.objects.filter(filters).exclude(id=request.user.id).distinct()
+
+                    if not users.exists():
+                        return success(custom_message="No users found.")
+
+                    paginator = PageNumberPagination()
+                    try:
+                        paged_users = paginator.paginate_queryset(users, request)
+                        serializer = AppUserSerializer(paged_users, many=True, context={'request': request})
+                        paginated_response = paginator.get_paginated_response(serializer.data)
+                        return success(data=serializer.data, custom_message="Users fetched successfully.")
+                    except NotFound:
                         return bad_request(custom_message='Invalid page number')
 
                 else:
