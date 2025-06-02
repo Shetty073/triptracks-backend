@@ -67,28 +67,25 @@ class CrewDetailsAPIView(APIView):
                         return bad_request(custom_message='Invalid page number')
 
                 elif request.GET.get('email_or_username'):
-                    email = request.GET.get('email')
-                    username = request.GET.get('username')
+                    email_or_username = request.GET.get('email_or_username')
+    
+                    if email_or_username:
+                        filters = Q(email__icontains=email_or_username) | Q(username__icontains=email_or_username)
+                        
+                        users = AppUser.objects.filter(filters).exclude(id=request.user.id).distinct()
 
-                    filters = Q()
-                    if email:
-                        filters |= Q(email__icontains=email)
-                    if username:
-                        filters |= Q(username__icontains=username)
+                        if not users.exists():
+                            return success(custom_message="No users found.")
 
-                    users = AppUser.objects.filter(filters).exclude(id=request.user.id).distinct()
+                        paginator = PageNumberPagination()
+                        try:
+                            paged_users = paginator.paginate_queryset(users, request)
+                            serializer = AppUserSerializer(paged_users, many=True, context={'request': request})
+                            return paginator.get_paginated_response(serializer.data)
+                        except NotFound:
+                            return bad_request(custom_message="Invalid page number.")
 
-                    if not users.exists():
-                        return success(custom_message="No users found.")
-
-                    paginator = PageNumberPagination()
-                    try:
-                        paged_users = paginator.paginate_queryset(users, request)
-                        serializer = AppUserSerializer(paged_users, many=True, context={'request': request})
-                        paginated_response = paginator.get_paginated_response(serializer.data)
-                        return success(data=serializer.data, custom_message="Users fetched successfully.")
-                    except NotFound:
-                        return bad_request(custom_message='Invalid page number')
+                    return bad_request(custom_message="Invalid parameter value for: email_or_username")
 
                 else:
                     # List all crew members for the authenticated user
