@@ -6,7 +6,7 @@ from knox.auth import TokenAuthentication
 from triptracks.crew_service.serializers.crewdetailserializer import CrewRelationshipSerializer, CrewRequestSerializer, AppUserSerializer
 from triptracks.identity.models.user import AppUser
 from triptracks.logger import logger
-from django.db.models import Q
+from django.db.models import Q, Subquery
 from triptracks.responses import bad_request, internal_server_error, success, success_created, success_updated
 from triptracks.crew_service.models.crew import CrewRelationship, CrewRequest
 
@@ -72,18 +72,26 @@ class CrewDetailsAPIView(APIView):
                     if not email_or_username:
                         return bad_request(custom_message="Invalid parameter value for: email_or_username")
 
-                    # Users matching the search, excluding current logged in user
+                    # Exclude users the current user has already sent a request to
+                    sent_request_user_ids = CrewRequest.objects.filter(
+                        from_user=request.user
+                    ).values('to_user_id')
+
+                    # Exclude users who have sent a request to the current user
+                    received_request_user_ids = CrewRequest.objects.filter(
+                        to_user=request.user
+                    ).values('from_user_id')
+
+                    # Users matching email/username, excluding self and requested users
                     users_qs = AppUser.objects.filter(
                         Q(email__icontains=email_or_username) | Q(username__icontains=email_or_username)
-                    ).exclude(id=request.user.id)
-
-                    # IDs of users who already have a pending request from the current logged in user
-                    requested_user_ids = CrewRequest.objects.filter(
-                        from_user=request.user
-                    ).values_list('to_user_id', flat=True)
-
-                    # Exclude users already requested
-                    users_qs = users_qs.exclude(id__in=requested_user_ids)
+                    ).exclude(
+                        id=request.user.id
+                    ).exclude(
+                        id__in=Subquery(sent_request_user_ids)
+                    ).exclude(
+                        id__in=Subquery(received_request_user_ids)
+                    )
 
                     if not users_qs.exists():
                         return success(custom_message="No users found.")
