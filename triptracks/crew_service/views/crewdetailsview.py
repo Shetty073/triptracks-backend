@@ -3,10 +3,10 @@ from rest_framework.permissions import IsAuthenticated
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound
 from knox.auth import TokenAuthentication
-from triptracks.crew_service.serializers.crewdetailserializer import CrewRelationshipSerializer, CrewRequestSerializer
+from triptracks.crew_service.serializers.crewdetailserializer import CrewRelationshipSerializer, CrewRequestSerializer, AppUserSerializer
 from triptracks.identity.models.user import AppUser
 from triptracks.logger import logger
-from django.db.models import Q
+from django.db.models import Q, Subquery
 from triptracks.responses import bad_request, internal_server_error, success, success_created, success_updated
 from triptracks.crew_service.models.crew import CrewRelationship, CrewRequest
 
@@ -65,6 +65,44 @@ class CrewDetailsAPIView(APIView):
                     
                     else:
                         return bad_request(custom_message='Invalid page number')
+
+                elif request.GET.get('email_or_username'):
+                    email_or_username = request.GET.get('email_or_username')
+
+                    if not email_or_username:
+                        return bad_request(custom_message="Invalid parameter value for: email_or_username")
+
+                    # Exclude users the current user has already sent a request to
+                    sent_request_user_ids = CrewRequest.objects.filter(
+                        from_user=request.user
+                    ).values('to_user_id')
+
+                    # Exclude users who have sent a request to the current user
+                    received_request_user_ids = CrewRequest.objects.filter(
+                        to_user=request.user
+                    ).values('from_user_id')
+
+                    # Users matching email/username, excluding self and requested users
+                    users_qs = AppUser.objects.filter(
+                        Q(email__icontains=email_or_username) | Q(username__icontains=email_or_username)
+                    ).exclude(
+                        id=request.user.id
+                    ).exclude(
+                        id__in=Subquery(sent_request_user_ids)
+                    ).exclude(
+                        id__in=Subquery(received_request_user_ids)
+                    )
+
+                    if not users_qs.exists():
+                        return success(custom_message="No users found.")
+
+                    paginator = PageNumberPagination()
+                    try:
+                        paged_users = paginator.paginate_queryset(users_qs, request)
+                        serializer = AppUserSerializer(paged_users, many=True, context={'request': request})
+                        return paginator.get_paginated_response(serializer.data)
+                    except NotFound:
+                        return bad_request(custom_message="Invalid page number.")
 
                 else:
                     # List all crew members for the authenticated user
