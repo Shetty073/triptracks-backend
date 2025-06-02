@@ -68,24 +68,33 @@ class CrewDetailsAPIView(APIView):
 
                 elif request.GET.get('email_or_username'):
                     email_or_username = request.GET.get('email_or_username')
-    
-                    if email_or_username:
-                        filters = Q(email__icontains=email_or_username) | Q(username__icontains=email_or_username)
-                        
-                        users = AppUser.objects.filter(filters).exclude(id=request.user.id).distinct()
 
-                        if not users.exists():
-                            return success(custom_message="No users found.")
+                    if not email_or_username:
+                        return bad_request(custom_message="Invalid parameter value for: email_or_username")
 
-                        paginator = PageNumberPagination()
-                        try:
-                            paged_users = paginator.paginate_queryset(users, request)
-                            serializer = AppUserSerializer(paged_users, many=True, context={'request': request})
-                            return paginator.get_paginated_response(serializer.data)
-                        except NotFound:
-                            return bad_request(custom_message="Invalid page number.")
+                    # Users matching the search, excluding current logged in user
+                    users_qs = AppUser.objects.filter(
+                        Q(email__icontains=email_or_username) | Q(username__icontains=email_or_username)
+                    ).exclude(id=request.user.id)
 
-                    return bad_request(custom_message="Invalid parameter value for: email_or_username")
+                    # IDs of users who already have a pending request from the current logged in user
+                    requested_user_ids = CrewRequest.objects.filter(
+                        from_user=request.user
+                    ).values_list('to_user_id', flat=True)
+
+                    # Exclude users already requested
+                    users_qs = users_qs.exclude(id__in=requested_user_ids)
+
+                    if not users_qs.exists():
+                        return success(custom_message="No users found.")
+
+                    paginator = PageNumberPagination()
+                    try:
+                        paged_users = paginator.paginate_queryset(users_qs, request)
+                        serializer = AppUserSerializer(paged_users, many=True, context={'request': request})
+                        return paginator.get_paginated_response(serializer.data)
+                    except NotFound:
+                        return bad_request(custom_message="Invalid page number.")
 
                 else:
                     # List all crew members for the authenticated user
