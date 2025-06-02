@@ -66,7 +66,7 @@ class CrewDetailsAPIView(APIView):
                     else:
                         return bad_request(custom_message='Invalid page number')
 
-                elif request.GET.get('email') or request.GET.get('username'):
+                elif request.GET.get('email_or_username'):
                     email = request.GET.get('email')
                     username = request.GET.get('username')
 
