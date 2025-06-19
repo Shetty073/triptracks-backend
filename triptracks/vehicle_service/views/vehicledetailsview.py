@@ -1,103 +1,100 @@
-import traceback
-from django.forms.models import model_to_dict
+from rest_framework.views import APIView
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound
-from rest_framework.views import APIView
-from knox.auth import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
-from triptracks.identity.models.user import AppUser
-from triptracks.logger import logger
+from knox.auth import TokenAuthentication
 from triptracks.vehicle_service.models.vehicle import Vehicle
 from triptracks.vehicle_service.serializers import VehicleDetailsSerializer
-from triptracks.responses import bad_request, internal_server_error, success, success_created, success_updated
+from triptracks.identity.models.user import AppUser
+from triptracks.logger import logger
+from triptracks.responses import (
+    bad_request, internal_server_error,
+    success, success_created, success_updated
+)
 
 class VehicleDetailsAPIView(APIView):
     authentication_classes = [TokenAuthentication]
     permission_classes = [IsAuthenticated]
 
+    def get_queryset(self, user):
+        return Vehicle.objects.select_related("owner").filter(owner=user)
+
     def get(self, request, id=None):
         try:
             if id:
                 vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
-                if vehicle:
-                    return success(data=model_to_dict(vehicle))
-                
-                else:
-                    return bad_request(custom_message="Vehicle with that id does not exist")
-            
+                if not vehicle:
+                    return bad_request(custom_message="Vehicle with that ID does not exist for the current user.")
+                serializer = VehicleDetailsSerializer(vehicle)
+                return success(data=serializer.data)
+
+            user_id = request.GET.get("user_id")
+            if user_id:
+                owner = AppUser.objects.filter(id=user_id).first()
+                if not owner:
+                    return bad_request(custom_message="User with the given ID does not exist.")
             else:
-                if request.GET.get('user_id'):
-                    vehicles = Vehicle.objects.filter(owner=AppUser.objects.filter(id=request.GET.get('user_id')).first())
-                else:
-                    vehicles = Vehicle.objects.filter(owner=request.user)
-                
-                if not vehicles.exists():
-                    return bad_request(custom_message="No vehicle exists for the given user.")
+                owner = request.user
 
-                if request.GET.get('page', 1):
-                    paginator = PageNumberPagination()
-                    try:
-                        paged_vehicles = paginator.paginate_queryset(vehicles, request)
-                        vehicle_serializer = VehicleDetailsSerializer(paged_vehicles, many=True)
+            vehicles_qs = self.get_queryset(owner)
+            if not vehicles_qs.exists():
+                return bad_request(custom_message="No vehicles found for the given user.")
 
-                        paginated_response = paginator.get_paginated_response(vehicle_serializer.data)
-                        return success(data=paginated_response.data, custom_message="Vehicle details fetched successfully.")
-            
-                    except NotFound:
-                        return bad_request(custom_message='Invalid page number')
-                
-                else:
-                    return bad_request(custom_message='Invalid page number')
-        
+            paginator = PageNumberPagination()
+            try:
+                paged_vehicles = paginator.paginate_queryset(vehicles_qs, request)
+                serializer = VehicleDetailsSerializer(paged_vehicles, many=True)
+                return success(
+                    data=paginator.get_paginated_response(serializer.data).data,
+                    custom_message="Vehicle details fetched successfully."
+                )
+            except NotFound:
+                return bad_request(custom_message="Invalid page number.")
+
         except Exception as e:
-            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
+            logger.exception("Exception in VehicleDetailsAPIView [GET]: %s", str(e))
             return internal_server_error()
 
     def post(self, request):
         try:
-            serializer = VehicleDetailsSerializer(data=request.data, context={'request': request})
+            serializer = VehicleDetailsSerializer(data=request.data, context={"request": request})
             if serializer.is_valid():
                 serializer.save()
                 return success_created(custom_message="Vehicle saved successfully!")
-            
             return bad_request(data={"errors": serializer.errors})
-    
         except Exception as e:
-            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
+            logger.exception("Exception in VehicleDetailsAPIView [POST]: %s", str(e))
             return internal_server_error()
-        
+
     def patch(self, request, id=None):
         try:
-            if id:
-                req_data = request.data
-                req_data["method"] = "PATCH"
-                serializer = VehicleDetailsSerializer(data=req_data, context={'request': request})
-                if serializer.is_valid():
-                    vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
-                    serializer.update(instance=vehicle, validated_data=req_data)
+            if not id:
+                return bad_request(custom_message="Vehicle ID is required for update.")
 
-                    return success_updated(custom_message="Vehicle updated successfully!")
-                
-                else:
-                    return bad_request(data={"errors": serializer.errors})
-            
-            return bad_request(custom_message="Vehicle with that id does not exist")
-        
+            vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
+            if not vehicle:
+                return bad_request(custom_message="Vehicle with that ID does not exist or you do not have permission.")
+
+            serializer = VehicleDetailsSerializer(vehicle, data=request.data, partial=True, context={"request": request})
+            if serializer.is_valid():
+                serializer.save()
+                return success_updated(custom_message="Vehicle updated successfully!")
+            return bad_request(data={"errors": serializer.errors})
         except Exception as e:
-            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
+            logger.exception("Exception in VehicleDetailsAPIView [PATCH]: %s", str(e))
             return internal_server_error()
 
     def delete(self, request, id=None):
         try:
-            if id:
-                vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
-                if vehicle:
-                    vehicle.delete()
+            if not id:
+                return bad_request(custom_message="Vehicle ID is required for deletion.")
 
-                    return success_created(custom_message="Vehicle deleted successfully!")
-            
-            return bad_request(custom_message="Vehicle with that id does not exist")
-        
+            vehicle = Vehicle.objects.filter(id=id, owner=request.user).first()
+            if not vehicle:
+                return bad_request(custom_message="Vehicle with that ID does not exist or you do not have permission.")
+
+            vehicle.delete()
+            return success_created(custom_message="Vehicle deleted successfully!")
         except Exception as e:
-            logger.exception(f"Exception in VehicleDetailsAPIView: {e}")
+            logger.exception("Exception in VehicleDetailsAPIView [DELETE]: %s", str(e))
             return internal_server_error()
