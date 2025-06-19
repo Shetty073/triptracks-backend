@@ -46,6 +46,7 @@ class CrewDetailsAPIView(APIView):
             
             else:
                 if request.GET.get('open_requests'):
+                    # Get all open crew request for the current user
                     crew_requests = CrewRequest.objects.filter(accepted=False, to_user=request.user)
 
                     if not crew_requests.exists():
@@ -67,6 +68,7 @@ class CrewDetailsAPIView(APIView):
                         return bad_request(custom_message='Invalid page number')
 
                 elif request.GET.get('email_or_username'):
+                    # Get all open crew request to or from the user with given email or username
                     email_or_username = request.GET.get('email_or_username')
 
                     if not email_or_username:

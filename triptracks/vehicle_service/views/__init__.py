@@ -1,1 +1,2 @@
 from .vehicledetailsview import VehicleDetailsAPIView
+from .crewvehicledetailsview import CrewVehicleDetailsAPIView
