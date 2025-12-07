@@ -1,7 +1,7 @@
-import traceback
 from rest_framework.pagination import PageNumberPagination
 from rest_framework.exceptions import NotFound
 from rest_framework.views import APIView
+from django.db.models import Q
 from knox.auth import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from triptracks.logger import logger
@@ -24,7 +24,9 @@ class TripDetailsAPIView(APIView):
                     return bad_request(custom_message="Trip with that ID does not exist.")
                 
             else:
-                trips = Trip.objects.filter(organizer=request.user)
+                trips = Trip.objects.filter(
+                    Q(organizer=request.user) | Q(travellers=request.user)
+                ).distinct()
                 if request.GET.get('page', 1):
                     paginator = PageNumberPagination()
                     try:
