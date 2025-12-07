@@ -31,9 +31,9 @@ else
     echo "Requirements file not found. Skipping installation."
 fi
 
-# Set the ENV environment variable to PROD
+# Set the ENV environment variable
 export ENV="DEV"
-echo "Environment variable ENV set to PROD."
+echo "Environment variable ENV set to $ENV."
 
 # Start the server using Waitress
 echo "Starting the Waitress server..."
