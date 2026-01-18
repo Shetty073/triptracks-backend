@@ -12,10 +12,10 @@ djangorestframework==3.16.1
 geomaps_sdk @ git+https://github.com/Shetty073/geomaps-sdk.git@b7cd363f118fdb66d72b01b28ede9e7ef0ce1f49
 idna==3.11
 Markdown==3.10
+mysqlclient==2.2.7
 packaging==25.0
 pillow==12.1.0
 pycparser==2.23
-PyMySQL==1.1.2
 requests==2.32.5
 shortuuid==1.0.13
 sqlparse==0.5.5

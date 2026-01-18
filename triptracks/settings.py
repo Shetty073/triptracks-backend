@@ -15,8 +15,6 @@ import os
 from pathlib import Path
 from rest_framework.settings import api_settings
 import environ
-import pymysql
-pymysql.install_as_MySQLdb()
 
 env = environ.Env(
     # set casting, default value
