@@ -9,7 +9,7 @@ django-environ==0.12.0
 django-filter==25.2
 django-rest-knox==5.0.2
 djangorestframework==3.16.1
-geomaps_sdk @ git+https://github.com/Shetty073/geomaps-sdk.git@b7cd363f118fdb66d72b01b28ede9e7ef0ce1f49
+geomaps_sdk @ git+https://github.com/Shetty073/geomaps-sdk.git@v0.0.2
 idna==3.11
 Markdown==3.10
 mysqlclient==2.2.7
