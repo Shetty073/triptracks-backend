@@ -275,4 +275,4 @@ MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'triptracks/media/')
 
 # Custom configs
-GEOAPIFY_APi_KEY = env('GEOAPIFY_APi_KEY')
+GEOAPIFY_API_KEY = env('GEOAPIFY_API_KEY')
