@@ -1,2 +1,2 @@
 from .tripdetailsserializer import TripDetailsSerializer
-from.tripmessagesserializer import TripMessagesSerializer
+from .tripmessagesserializer import TripMessagesSerializer

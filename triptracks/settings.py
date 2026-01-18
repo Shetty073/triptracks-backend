@@ -14,11 +14,17 @@ from datetime import timedelta
 import os
 from pathlib import Path
 from rest_framework.settings import api_settings
-import pymysql
-pymysql.install_as_MySQLdb()
+import environ
+
+env = environ.Env(
+    # set casting, default value
+    DEBUG=(bool, False)
+)
 
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
+
+environ.Env.read_env(os.path.join(BASE_DIR, '.env'))
 
 SERVICE_NAME = 'triptracks'
 
@@ -26,10 +32,10 @@ SERVICE_NAME = 'triptracks'
 # See https://docs.djangoproject.com/en/5.0/howto/deployment/checklist/
 
 # SECURITY WARNING: keep the secret key used in production secret!
-SECRET_KEY = 'django-insecure-nm&f^=@+fu!br-4wtipco=(^73o7ho+rbpb+7zkw2#qh$9!&7f'
+SECRET_KEY = env('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True if os.getenv('ENV', 'DEV') == 'DEV' else False
+DEBUG = env('DEBUG')
 
 ALLOWED_HOSTS = [
     'localhost',
@@ -135,7 +141,6 @@ REST_FRAMEWORK = {
 KNOX_TOKEN_MODEL = 'knox.AuthToken'
 
 REST_KNOX = {
-  'SECURE_HASH_ALGORITHM': 'cryptography.hazmat.primitives.hashes.SHA512',
   'AUTH_TOKEN_CHARACTER_LENGTH': 64,
   'TOKEN_TTL': timedelta(hours=10),
   'USER_SERIALIZER': 'knox.serializers.UserSerializer',
@@ -268,3 +273,6 @@ STATIC_ROOT = os.path.join(BASE_DIR, 'triptracks/static/')
 
 MEDIA_URL = '/media/'
 MEDIA_ROOT = os.path.join(BASE_DIR, 'triptracks/media/')
+
+# Custom configs
+GEOAPIFY_API_KEY = env('GEOAPIFY_API_KEY')
