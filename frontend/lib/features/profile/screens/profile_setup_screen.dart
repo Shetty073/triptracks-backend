@@ -4,6 +4,7 @@ import 'package:image_picker/image_picker.dart';
 import 'package:frontend/features/profile/providers/profile_provider.dart';
 import 'package:frontend/core/auth_provider.dart';
 import 'package:frontend/core/constants.dart';
+import 'package:frontend/shared/widgets/responsive_center.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -208,8 +209,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
             _accentColor = settings.accentColor;
           }
 
-          return ListView(
-            padding: const EdgeInsets.all(16),
+          return ResponsiveCenter(
+            child: ListView(
+              padding: const EdgeInsets.all(16),
             children: [
               // --- Profile Photo ---
               Center(
@@ -405,7 +407,7 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 ),
               ),
             ],
-          );
+          ));
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => Center(child: Text('Error: $err')),

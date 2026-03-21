@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/debouncer.dart';
 import 'package:frontend/features/plan_trip/providers/plan_trip_provider.dart';
+import 'package:frontend/shared/widgets/responsive_center.dart';
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
@@ -249,8 +250,9 @@ class _PlanTripScreenState extends ConsumerState<PlanTripScreen> {
       appBar: AppBar(title: const Text('Plan a Trip')),
       body: _isLoading
           ? const Center(child: CircularProgressIndicator())
-          : ListView(
-              padding: const EdgeInsets.all(16),
+          : ResponsiveCenter(
+              child: ListView(
+                padding: const EdgeInsets.all(16),
               children: [
                 // ── 1. Trip Title ────────────────────────────────────────
                 _header('Trip Details', Icons.edit_road, primary),
@@ -472,6 +474,7 @@ class _PlanTripScreenState extends ConsumerState<PlanTripScreen> {
                 const SizedBox(height: 24),
               ],
             ),
+          ),
     );
   }
 

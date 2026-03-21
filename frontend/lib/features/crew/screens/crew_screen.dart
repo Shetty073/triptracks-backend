@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/features/crew/providers/crew_provider.dart';
+import 'package:frontend/shared/widgets/responsive_center.dart';
 
 class CrewScreen extends ConsumerStatefulWidget {
   const CrewScreen({super.key});
@@ -40,12 +41,14 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
             Expanded(
               child: TabBarView(
                 children: [
-                  _MyCrewList(),
-                  _PendingRequestsList(),
-                  _SearchCrew(
-                    controller: _searchController,
-                    query: _searchQuery,
-                    onSearch: (q) => setState(() => _searchQuery = q),
+                  ResponsiveCenter(child: _MyCrewList()),
+                  ResponsiveCenter(child: _PendingRequestsList()),
+                  ResponsiveCenter(
+                    child: _SearchCrew(
+                      controller: _searchController,
+                      query: _searchQuery,
+                      onSearch: (q) => setState(() => _searchQuery = q),
+                    ),
                   ),
                 ],
               ),

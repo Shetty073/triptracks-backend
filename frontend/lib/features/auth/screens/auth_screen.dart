@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/auth_provider.dart';
+import 'package:frontend/shared/widgets/responsive_center.dart';
 
 /// Signup flows through 3 steps:
 ///   Step 0 — Enter email & send OTP
@@ -217,9 +218,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         ),
         child: SafeArea(
           child: Center(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
-              child: FadeTransition(
+            child: ResponsiveCenter(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 28, vertical: 24),
+                child: FadeTransition(
                 opacity: _fadeAnimation,
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.center,
@@ -269,6 +271,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
                       ),
                     ),
                   ],
+                ),
                 ),
               ),
             ),

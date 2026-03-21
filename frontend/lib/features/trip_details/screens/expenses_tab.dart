@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/trip.dart';
 import 'package:frontend/features/trip_details/providers/trip_interactions_provider.dart';
+import 'package:frontend/shared/widgets/responsive_center.dart';
 import 'package:intl/intl.dart';
 
 class ExpensesTab extends ConsumerStatefulWidget {
@@ -91,8 +92,9 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
       (sum, item) => sum + item.amount,
     );
 
-    return Column(
-      children: [
+    return ResponsiveCenter(
+      child: Column(
+        children: [
         Padding(
           padding: const EdgeInsets.all(16.0),
           child: Row(
@@ -142,6 +144,7 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                 ),
         ),
       ],
+    ),
     );
   }
 }
