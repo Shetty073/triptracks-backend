@@ -1,9 +1,7 @@
-#!/bin/bash
+#!/usr/bin/env bash
 
-# Exit immediately if a command exits with a non-zero status
 set -e
 
-# Production Configuration Variables (can be overridden by environment variables)
 HOST=${HOST:-0.0.0.0}
 PORT=${PORT:-8001}
 WORKERS=${WORKERS:-4}
@@ -15,19 +13,24 @@ echo "=> Port: $PORT"
 echo "=> Workers: $WORKERS"
 echo "=> Log Level: $LOG_LEVEL"
 
-# Activate the local virtual environment
+# Activate virtual environment (cross-platform)
 if [ -d "venv" ]; then
     echo "=> Activating virtual environment..."
-    source venv/bin/activate
+
+    if [ -f "venv/bin/activate" ]; then
+        # Linux / macOS
+        source venv/bin/activate
+    elif [ -f "venv/Scripts/activate" ]; then
+        # Windows (Git Bash)
+        source venv/Scripts/activate
+    else
+        echo "WARNING: Could not find activate script in venv."
+    fi
 else
     echo "WARNING: No virtual environment found at ./venv. Assuming dependencies are globally installed."
 fi
 
-# Optional: Run database migrations here if you have any (e.g. Alembic)
-# alembic upgrade head
-
-# Start the application using uvicorn
-# --proxy-headers and --forwarded-allow-ips are important if you are running behind a reverse proxy like Nginx or AWS ALB
+# Start the application
 exec uvicorn app.main:app \
     --host $HOST \
     --port $PORT \
