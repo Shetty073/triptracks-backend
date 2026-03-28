@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/debouncer.dart';
 import 'package:frontend/features/plan_trip/providers/plan_trip_provider.dart';
 import 'package:frontend/shared/widgets/responsive_center.dart';
+import 'package:frontend/core/utils/error_handler.dart';
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 
@@ -181,7 +182,7 @@ class _PlanTripScreenState extends ConsumerState<PlanTripScreen> {
 
       setState(() => _plan = data);
     } catch (e) {
-      _showSnack(e.toString());
+      _showSnack(ErrorHandler.getMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -214,7 +215,7 @@ class _PlanTripScreenState extends ConsumerState<PlanTripScreen> {
       _showSnack('Trip saved!');
       Navigator.pop(context);
     } catch (e) {
-      _showSnack(e.toString());
+      _showSnack(ErrorHandler.getMessage(e));
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }

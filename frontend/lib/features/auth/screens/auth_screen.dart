@@ -4,6 +4,7 @@ import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/auth_provider.dart';
 import 'package:frontend/shared/widgets/responsive_center.dart';
+import 'package:frontend/core/utils/error_handler.dart';
 
 /// Signup flows through 3 steps:
 ///   Step 0 — Enter email & send OTP
@@ -131,11 +132,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       _isLoading = true;
       _errorMessage = null;
     });
-    await ref.read(authStateProvider.notifier).login(id, pw);
-    if (mounted) setState(() => _isLoading = false);
-    final authState = ref.read(authStateProvider);
-    if (authState.hasError) {
-      _setError(_friendlyError(authState.error));
+    try {
+      print('Attempting login');
+      await ref.read(authStateProvider.notifier).login(id, pw);
+      print('Login success');
+    } catch (e) {
+      print('Caught exception in _handleLogin: $e');
+      final msg = ErrorHandler.getMessage(e);
+      print('ErrorHandler returned: $msg');
+      if (mounted) _setError(msg);
+    } finally {
+      print('Running finally block in _handleLogin');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -158,7 +166,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       });
       _fadeController.forward();
     } catch (e) {
-      if (mounted) _setError(_friendlyError(e));
+      if (mounted) _setError(ErrorHandler.getMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -184,7 +192,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       });
       _fadeController.forward();
     } catch (e) {
-      if (mounted) _setError(_friendlyError(e));
+      if (mounted) _setError(ErrorHandler.getMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -212,37 +220,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       _isLoading = true;
       _errorMessage = null;
     });
-    await ref
-        .read(authStateProvider.notifier)
-        .register(
-          email: _signupEmailController.text.trim(),
-          username: username,
-          password: password,
-          serviceCode: serviceCode,
-          fullName: _fullNameController.text.trim().isNotEmpty
-              ? _fullNameController.text.trim()
-              : null,
-        );
-    if (mounted) setState(() => _isLoading = false);
-    final authState = ref.read(authStateProvider);
-    if (authState.hasError) _setError(_friendlyError(authState.error));
-  }
-
-  String _friendlyError(dynamic e) {
-    if (e is DioException) {
-      final data = e.response?.data;
-      if (data is Map<String, dynamic> && data.containsKey('detail')) {
-        return data['detail'].toString();
-      }
+    try {
+      await ref.read(authStateProvider.notifier).register(
+            email: _signupEmailController.text.trim(),
+            username: username,
+            password: password,
+            serviceCode: serviceCode,
+            fullName: _fullNameController.text.trim().isNotEmpty
+                ? _fullNameController.text.trim()
+                : null,
+          );
+    } catch (e) {
+      if (mounted) _setError(ErrorHandler.getMessage(e));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    
-    final msg = e.toString();
-    if (msg.contains('400')) {
-      return 'Request failed. Please check your details.';
-    }
-    if (msg.contains('401')) return 'Not authorised.';
-    if (msg.contains('500')) return 'Server error. Please try again later.';
-    return msg.replaceFirst('Exception: ', '');
   }
 
   @override

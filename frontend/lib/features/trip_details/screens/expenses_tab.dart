@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/models/trip.dart';
 import 'package:frontend/features/trip_details/providers/trip_interactions_provider.dart';
 import 'package:frontend/shared/widgets/responsive_center.dart';
+import 'package:frontend/core/utils/error_handler.dart';
 import 'package:intl/intl.dart';
 
 class ExpensesTab extends ConsumerStatefulWidget {
@@ -72,9 +73,9 @@ class _ExpensesTabState extends ConsumerState<ExpensesTab> {
                   );
                 } catch (e) {
                   if (!context.mounted) return;
-                  ScaffoldMessenger.of(
-                    context,
-                  ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text(ErrorHandler.getMessage(e))),
+                  );
                 }
               }
             },

@@ -33,7 +33,6 @@ class AuthNotifier extends AsyncNotifier<User?> {
   }
 
   Future<void> login(String usernameOrEmail, String password) async {
-    state = const AsyncValue.loading();
     try {
       final response = await _dio.post(
         '/api/auth/login',
@@ -52,6 +51,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
       state = AsyncValue.data(user);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 
@@ -79,7 +79,6 @@ class AuthNotifier extends AsyncNotifier<User?> {
     required String serviceCode,
     String? fullName,
   }) async {
-    state = const AsyncValue.loading();
     try {
       await _dio.post(
         '/api/auth/register',
@@ -94,6 +93,7 @@ class AuthNotifier extends AsyncNotifier<User?> {
       await login(username, password);
     } catch (e, st) {
       state = AsyncValue.error(e, st);
+      rethrow;
     }
   }
 

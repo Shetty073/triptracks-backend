@@ -49,10 +49,21 @@ class UserProfileSettings {
 final profileSettingsProvider = FutureProvider<UserProfileSettings>((
   ref,
 ) async {
-  final dio = ref.watch(dioProvider);
-  // Ensure user is loaded first
-  final _ = ref.watch(authStateProvider);
+  final authState = ref.watch(authStateProvider);
 
+  if (authState.isLoading || authState.valueOrNull == null) {
+    return UserProfileSettings(
+      distanceUnit: 'km',
+      currency: 'USD',
+      themeMode: 'system',
+      accentColor: 'deepPurple',
+      avgDailyFoodExpense: 0.0,
+      avgNightlyStayExpense: 0.0,
+      vehicles: [],
+    );
+  }
+
+  final dio = ref.watch(dioProvider);
   final response = await dio.get('/api/users/me');
   final settingsJson = response.data['profile_settings'] ?? {};
   return UserProfileSettings.fromJson(settingsJson);
