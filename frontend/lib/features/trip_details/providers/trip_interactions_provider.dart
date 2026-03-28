@@ -36,12 +36,22 @@ class TripInteractionsNotifier {
     ref.invalidate(tripDetailsProvider(tripId));
   }
 
-  Future<void> addPhoto(String tripId, List<int> bytes, String filename) async {
+  Future<void> addPhoto(String tripId, List<int> bytes, String filename, {String? albumId}) async {
     final dio = ref.read(dioProvider);
-    final formData = FormData.fromMap({
+    final Map<String, dynamic> data = {
       'file': MultipartFile.fromBytes(bytes, filename: filename),
-    });
+    };
+    if (albumId != null) {
+      data['album_id'] = albumId;
+    }
+    final formData = FormData.fromMap(data);
     await dio.post('/api/trips/$tripId/photos', data: formData);
+    ref.invalidate(tripDetailsProvider(tripId));
+  }
+
+  Future<void> createAlbum(String tripId, String name) async {
+    final dio = ref.read(dioProvider);
+    await dio.post('/api/trips/$tripId/albums', queryParameters: {'name': name});
     ref.invalidate(tripDetailsProvider(tripId));
   }
 }

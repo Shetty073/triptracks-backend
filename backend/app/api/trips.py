@@ -1,10 +1,14 @@
-from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
+from fastapi.responses import StreamingResponse
 from typing import List, Optional, Dict, Any
 import shutil
 import os
+import io
+import zipfile
+import aiofiles
 from app.models.trip import TripDB, TripCreate, Location, Expense, EstimatedCosts, VehicleFuelCost, Leg
 from app.models.user import UserDB
-from app.api.auth import get_current_user
+from app.api.auth import get_current_user, get_current_user_from_query
 from app.core.database import db
 from app.services.trip_planner import TripPlannerService
 import uuid
@@ -13,6 +17,37 @@ from pydantic import BaseModel
 from collections import defaultdict
 
 router = APIRouter()
+
+def _normalize_trip(trip_data: dict) -> dict:
+    """Helper to ensure legacy data (like string photo URLs) matches the new TripDB schema."""
+    if not trip_data:
+        return trip_data
+        
+    # Standardize photos
+    if "photos" in trip_data:
+        normalized_photos = []
+        for photo in trip_data["photos"]:
+            if isinstance(photo, str):
+                normalized_photos.append({
+                    "id": str(uuid.uuid4()),
+                    "url": photo,
+                    "uploaded_by": "",
+                    "username": "legacy",
+                    "album_id": "general",
+                    "uploaded_at": datetime.utcnow().isoformat()
+                })
+            else:
+                normalized_photos.append(photo)
+        trip_data["photos"] = normalized_photos
+    
+    # Ensure mandatory lists exist
+    if "albums" not in trip_data:
+        trip_data["albums"] = []
+    if "comments" not in trip_data:
+        trip_data["comments"] = []
+        
+    return trip_data
+
 
 # ─── SPECIFIC / LITERAL ROUTES (must come before wildcard /{trip_id}) ───────
 
@@ -122,7 +157,7 @@ async def get_user_trips(current_user: UserDB = Depends(get_current_user)):
     }
     
     for t in trips:
-        trip = TripDB(**t)
+        trip = TripDB(**_normalize_trip(t))
         if trip.organizer_id == current_user.id:
             if trip.status == "completed":
                 categorized["completed_by_me"].append(trip)
@@ -151,7 +186,7 @@ async def get_completed_trips_feed(search: Optional[str] = None, current_user: U
     cursor = db.db["trips"].find(query).sort("updated_at", -1).limit(50)
     
     trips = await cursor.to_list(length=50)
-    return [TripDB(**t) for t in trips]
+    return [TripDB(**_normalize_trip(t)) for t in trips]
 
 @router.get("/autocomplete")
 async def autocomplete_location(query: str, current_user: UserDB = Depends(get_current_user)):
@@ -233,6 +268,153 @@ async def get_participant_names(trip_id: str, current_user: UserDB = Depends(get
     names = {u["id"]: u.get("full_name") or u.get("username") for u in user_docs}
     return names
 
+class CommentCreate(BaseModel):
+    text: str
+
+@router.post("/{trip_id}/comments")
+async def add_comment(trip_id: str, comment: CommentCreate, current_user: UserDB = Depends(get_current_user)):
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+        
+    # Anyone can comment on completed public trips, else only participants
+    if trip_data["status"] != "completed":
+        participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
+        if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
+            raise HTTPException(status_code=403, detail="Not authorized to comment")
+            
+    comment_data = {
+        "id": str(uuid.uuid4()),
+        "user_id": current_user.id,
+        "username": current_user.username,
+        "text": comment.text,
+        "timestamp": datetime.utcnow()
+    }
+    
+    await db.db["trips"].update_one(
+        {"id": trip_id},
+        {"$push": {"comments": comment_data}}
+    )
+    return comment_data
+
+@router.post("/{trip_id}/photos")
+async def add_trip_photo(
+    trip_id: str, 
+    file: UploadFile = File(...), 
+    album_id: str = Form("general"),
+    current_user: UserDB = Depends(get_current_user)
+):
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+        
+    participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
+    if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
+        raise HTTPException(status_code=403, detail="Not authorized to add photos")
+        
+    if trip_data.get("status") == "planned":
+        raise HTTPException(status_code=400, detail="Cannot add photos to a trip that hasn't started yet")
+        
+    ext = file.filename.split('.')[-1] if '.' in (file.filename or "") else 'jpg'
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = f"uploads/trips/{filename}"
+    
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    file_url = f"/uploads/trips/{filename}"
+    
+    photo_data = {
+        "id": str(uuid.uuid4()),
+        "url": file_url,
+        "uploaded_by": current_user.id,
+        "username": current_user.username,
+        "album_id": album_id,
+        "uploaded_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.db["trips"].update_one(
+        {"id": trip_id},
+        {"$push": {"photos": photo_data}}
+    )
+    
+    return photo_data
+
+@router.post("/{trip_id}/albums")
+async def create_trip_album(
+    trip_id: str, 
+    name: str, 
+    current_user: UserDB = Depends(get_current_user)
+):
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+        
+    album_id = str(uuid.uuid4())
+    album_data = {
+        "id": album_id,
+        "name": name,
+        "created_by": current_user.id,
+        "created_at": datetime.utcnow().isoformat()
+    }
+    
+    await db.db["trips"].update_one(
+        {"id": trip_id},
+        {"$push": {"albums": album_data}}
+    )
+    
+    return album_data
+
+@router.get("/{trip_id}/albums/{album_id}/download")
+async def download_trip_album(
+    trip_id: str, 
+    album_id: str,
+    current_user: UserDB = Depends(get_current_user_from_query)
+):
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    # Authorize current user
+    participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
+    if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
+        raise HTTPException(status_code=403, detail="Not authorized to download this album")
+
+
+    album_photos = [p for p in trip_data.get("photos", []) if isinstance(p, dict) and p.get("album_id") == album_id]
+    
+    if album_id == "general":
+        legacy_photos = [p for p in trip_data.get("photos", []) if isinstance(p, str)]
+        for lp in legacy_photos:
+            album_photos.append({"url": lp})
+
+    if not album_photos:
+        raise HTTPException(status_code=404, detail="No photos found in this album")
+
+    async def zip_generator():
+        io_output = io.BytesIO()
+        with zipfile.ZipFile(io_output, mode='w', compression=zipfile.ZIP_DEFLATED) as zip_file:
+            for photo in album_photos:
+                url = photo.get("url")
+                relative_path = url.lstrip("/")
+                if os.path.exists(relative_path):
+                    filename = os.path.basename(relative_path)
+                    async with aiofiles.open(relative_path, mode='rb') as f:
+                        content = await f.read()
+                        zip_file.writestr(filename, content)
+        
+        yield io_output.getvalue()
+
+    album_name = next((a["name"] for a in trip_data.get("albums", []) if a["id"] == album_id), "album")
+    if album_id == "general":
+        album_name = "General"
+
+    return StreamingResponse(
+        zip_generator(),
+        media_type="application/x-zip-compressed",
+        headers={"Content-Disposition": f"attachment; filename={album_name}.zip"}
+    )
+
 # ─── WILDCARD ROUTES (must come AFTER all literal routes) ────────────────────
 
 @router.get("/{trip_id}", response_model=TripDB)
@@ -247,6 +429,26 @@ async def get_trip(trip_id: str, current_user: UserDB = Depends(get_current_user
         if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
             raise HTTPException(status_code=403, detail="Not authorized to view this active trip")
             
+    # Normalize photos: convert legacy string URLs to TripPhoto objects
+    if "photos" in trip_data:
+        normalized_photos = []
+        for photo in trip_data["photos"]:
+            if isinstance(photo, str):
+                normalized_photos.append({
+                    "id": str(uuid.uuid4()),
+                    "url": photo,
+                    "uploaded_by": "",
+                    "username": "legacy",
+                    "album_id": "general",
+                    "uploaded_at": datetime.utcnow().isoformat()
+                })
+            else:
+                normalized_photos.append(photo)
+        trip_data["photos"] = normalized_photos
+
+    if "photos" in trip_data:
+        _normalize_trip(trip_data)
+
     return TripDB(**trip_data)
 
 @router.patch("/{trip_id}/start", response_model=TripDB)
@@ -306,6 +508,23 @@ async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = D
     )
     
     updated_trip = await db.db["trips"].find_one({"id": trip_id})
+    # Normalize photos
+    if "photos" in updated_trip:
+        normalized_photos = []
+        for photo in updated_trip["photos"]:
+            if isinstance(photo, str):
+                normalized_photos.append({
+                    "id": str(uuid.uuid4()),
+                    "url": photo,
+                    "uploaded_by": "",
+                    "username": "legacy",
+                    "album_id": "general",
+                    "uploaded_at": datetime.utcnow().isoformat()
+                })
+            else:
+                normalized_photos.append(photo)
+        updated_trip["photos"] = normalized_photos
+        
     return TripDB(**updated_trip)
 
 @router.patch("/{trip_id}/complete", response_model=TripDB)
@@ -323,7 +542,7 @@ async def complete_trip(trip_id: str, current_user: UserDB = Depends(get_current
     )
     
     updated_trip = await db.db["trips"].find_one({"id": trip_id})
-    return TripDB(**updated_trip)
+    return TripDB(**_normalize_trip(updated_trip))
 
 @router.post("/{trip_id}/expenses", response_model=Expense)
 async def add_expense(trip_id: str, expense: Expense, current_user: UserDB = Depends(get_current_user)):
@@ -420,60 +639,5 @@ async def get_trip_balances(trip_id: str, current_user: UserDB = Depends(get_cur
         "user_names": user_names
     }
 
-class CommentCreate(BaseModel):
-    text: str
 
-@router.post("/{trip_id}/comments")
-async def add_comment(trip_id: str, comment: CommentCreate, current_user: UserDB = Depends(get_current_user)):
-    trip_data = await db.db["trips"].find_one({"id": trip_id})
-    if not trip_data:
-        raise HTTPException(status_code=404, detail="Trip not found")
-        
-    # Anyone can comment on completed public trips, else only participants
-    if trip_data["status"] != "completed":
-        participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
-        if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
-            raise HTTPException(status_code=403, detail="Not authorized to comment")
-            
-    comment_data = {
-        "id": str(uuid.uuid4()),
-        "user_id": current_user.id,
-        "username": current_user.username,
-        "text": comment.text,
-        "timestamp": datetime.utcnow()
-    }
-    
-    await db.db["trips"].update_one(
-        {"id": trip_id},
-        {"$push": {"comments": comment_data}}
-    )
-    return comment_data
 
-@router.post("/{trip_id}/photos")
-async def add_trip_photo(trip_id: str, file: UploadFile = File(...), current_user: UserDB = Depends(get_current_user)):
-    trip_data = await db.db["trips"].find_one({"id": trip_id})
-    if not trip_data:
-        raise HTTPException(status_code=404, detail="Trip not found")
-        
-    participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
-    if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
-        raise HTTPException(status_code=403, detail="Not authorized to add photos")
-        
-    if trip_data.get("status") == "planned":
-        raise HTTPException(status_code=400, detail="Cannot add photos to a trip that hasn't started yet")
-        
-    ext = file.filename.split('.')[-1] if '.' in (file.filename or "") else 'jpg'
-    filename = f"{uuid.uuid4()}.{ext}"
-    filepath = f"uploads/trips/{filename}"
-    
-    with open(filepath, "wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
-        
-    file_url = f"/uploads/trips/{filename}"
-    
-    await db.db["trips"].update_one(
-        {"id": trip_id},
-        {"$push": {"photos": file_url}}
-    )
-    
-    return {"status": "success", "url": file_url}

@@ -141,6 +141,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 # ─── Auth Dependency ──────────────────────────────────────────────────────────
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
+    return await _get_user_from_token(token)
+
+async def get_current_user_from_query(token: str):
+    return await _get_user_from_token(token)
+
+async def _get_user_from_token(token: str):
     from jose import jwt, JWTError
     from app.core.config import settings
     credentials_exception = HTTPException(

@@ -57,13 +57,35 @@ class TripBase(BaseModel):
 class TripCreate(TripBase):
     pass
 
+class TripComment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    username: str
+    text: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class TripPhoto(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    url: str
+    uploaded_by: str
+    username: str
+    album_id: Optional[str] = "general"
+    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TripAlbum(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
+
 class TripDB(TripBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     organizer_id: str
     status: str = "planned" # planned, in_progress, completed
     expenses: List[Expense] = []
-    comments: List[dict] = [] # Keeping it simple for now -> [{user_id, text, timestamp}]
-    photos: List[str] = [] # URLs to photos
+    comments: List[TripComment] = []
+    photos: List[TripPhoto] = []
+    albums: List[TripAlbum] = []
     estimated_costs: Optional[EstimatedCosts] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

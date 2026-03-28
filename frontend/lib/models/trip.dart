@@ -134,6 +134,58 @@ class TripComment {
   }
 }
 
+class TripPhoto {
+  final String id;
+  final String url;
+  final String uploadedBy;
+  final String username;
+  final String albumId;
+  final DateTime uploadedAt;
+
+  TripPhoto({
+    required this.id,
+    required this.url,
+    required this.uploadedBy,
+    required this.username,
+    required this.albumId,
+    required this.uploadedAt,
+  });
+
+  factory TripPhoto.fromJson(Map<String, dynamic> json) {
+    return TripPhoto(
+      id: json['id'] ?? '',
+      url: json['url'] ?? '',
+      uploadedBy: json['uploaded_by'] ?? '',
+      username: json['username'] ?? '',
+      albumId: json['album_id'] ?? 'general',
+      uploadedAt: DateTime.tryParse(json['uploaded_at'] ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class TripAlbum {
+  final String id;
+  final String name;
+  final String createdBy;
+  final DateTime createdAt;
+
+  TripAlbum({
+    required this.id,
+    required this.name,
+    required this.createdBy,
+    required this.createdAt,
+  });
+
+  factory TripAlbum.fromJson(Map<String, dynamic> json) {
+    return TripAlbum(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      createdBy: json['created_by'] ?? '',
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
 class Trip {
   final String id;
   final String organizerId;
@@ -146,7 +198,8 @@ class Trip {
   final List<TripParticipant> participants;
   final List<Expense> expenses;
   final List<TripComment> comments;
-  final List<String> photos;
+  final List<TripPhoto> photos;
+  final List<TripAlbum> albums;
   final EstimatedCosts? estimatedCosts;
   final DateTime createdAt;
 
@@ -163,6 +216,7 @@ class Trip {
     required this.expenses,
     required this.comments,
     required this.photos,
+    required this.albums,
     this.estimatedCosts,
     required this.createdAt,
   });
@@ -192,7 +246,14 @@ class Trip {
               ?.map((e) => TripComment.fromJson(e))
               .toList() ??
           [],
-      photos: (json['photos'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      photos: (json['photos'] as List?)
+              ?.map((e) => e is String ? TripPhoto(id: '', url: e, uploadedBy: '', username: '', albumId: 'general', uploadedAt: DateTime.now()) : TripPhoto.fromJson(e))
+              .toList() ??
+          [],
+      albums: (json['albums'] as List?)
+              ?.map((e) => TripAlbum.fromJson(e))
+              .toList() ??
+          [],
       estimatedCosts: json['estimated_costs'] != null
           ? EstimatedCosts.fromJson(json['estimated_costs'])
           : null,
