@@ -54,7 +54,6 @@ class _ChatTabState extends ConsumerState<ChatTab>
   final _inputFocusNode = FocusNode();   // ← keeps keyboard focus after send
   WebSocketChannel? _channel;
   String? _currentUserId;
-  String? _tripTitle;  // for notification title
 
   bool _isLoadingHistory = false;
   bool _hasMoreHistory = true;
@@ -154,7 +153,7 @@ class _ChatTabState extends ConsumerState<ChatTab>
               decodedData['user_id'] != _currentUserId) {
             try {
               NotificationService.instance.showChatMessage(
-                tripTitle: _tripTitle ?? 'Trip Chat',
+                tripTitle: 'Trip Chat',
                 sender: decodedData['username'] ?? 'Someone',
                 text: decodedData['text'] ?? '',
               );
