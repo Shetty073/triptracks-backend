@@ -1,5 +1,7 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from typing import List, Optional, Dict, Any
+import shutil
+import os
 from app.models.trip import TripDB, TripCreate, Location, Expense
 from app.models.user import UserDB
 from app.api.auth import get_current_user
@@ -8,6 +10,7 @@ from app.services.trip_planner import TripPlannerService
 import uuid
 from datetime import datetime
 from pydantic import BaseModel
+from collections import defaultdict
 
 router = APIRouter()
 
@@ -161,21 +164,77 @@ async def get_trip(trip_id: str, current_user: UserDB = Depends(get_current_user
             
     return TripDB(**trip_data)
 
-@router.put("/{trip_id}/status")
-async def update_trip_status(trip_id: str, status: str, current_user: UserDB = Depends(get_current_user)):
-    if status not in ["planned", "in_progress", "completed"]:
-        raise HTTPException(status_code=400, detail="Invalid status")
+@router.patch("/{trip_id}/start", response_model=TripDB)
+async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = Depends(get_current_user)):
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+    
+    if trip_data["organizer_id"] != current_user.id:
+        raise HTTPException(status_code=403, detail="Only the organizer can start the trip")
         
+    if trip_data["status"] != "planned":
+        raise HTTPException(status_code=400, detail=f"Trip cannot be started from status: {trip_data['status']}")
+
+    all_users = [p["user_id"] for p in trip_data.get("participants", [])]
+    if current_user.id not in all_users:
+        all_users.append(current_user.id)
+
+    active_trips_cursor = db.db["trips"].find({
+        "status": "in_progress",
+        "$or": [
+            {"organizer_id": {"$in": all_users}},
+            {"participants.user_id": {"$in": all_users}}
+        ]
+    })
+    
+    active_trips = await active_trips_cursor.to_list(length=None)
+    
+    conflicting_user_ids = set()
+    for active_trip in active_trips:
+        if active_trip["organizer_id"] in all_users:
+            conflicting_user_ids.add(active_trip["organizer_id"])
+        for p in active_trip.get("participants", []):
+            if p["user_id"] in all_users:
+                conflicting_user_ids.add(p["user_id"])
+                
+    if conflicting_user_ids:
+        if force:
+            new_participants = [p for p in trip_data.get("participants", []) if p["user_id"] not in conflicting_user_ids]
+            await db.db["trips"].update_one(
+                {"id": trip_id},
+                {"$set": {"participants": new_participants}}
+            )
+        else:
+            users_cursor = db.db["users"].find({"id": {"$in": list(conflicting_user_ids)}})
+            bad_users = await users_cursor.to_list(length=None)
+            names = [u.get("full_name") or u.get("username") for u in bad_users]
+            names_str = ", ".join(names)
+            raise HTTPException(
+                status_code=400, 
+                detail=f"Unable to start trip as the following users already have an active trip: {names_str}. Use force=true to remove them and start anyway."
+            )
+            
+    await db.db["trips"].update_one(
+        {"id": trip_id},
+        {"$set": {"status": "in_progress", "start_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+    )
+    
+    updated_trip = await db.db["trips"].find_one({"id": trip_id})
+    return TripDB(**updated_trip)
+
+@router.patch("/{trip_id}/complete", response_model=TripDB)
+async def complete_trip(trip_id: str, current_user: UserDB = Depends(get_current_user)):
     trip_data = await db.db["trips"].find_one({"id": trip_id})
     if not trip_data:
         raise HTTPException(status_code=404, detail="Trip not found")
         
     if trip_data["organizer_id"] != current_user.id:
-        raise HTTPException(status_code=403, detail="Only organizer can change status")
+        raise HTTPException(status_code=403, detail="Only the organizer can complete the trip")
         
     await db.db["trips"].update_one(
         {"id": trip_id},
-        {"$set": {"status": status, "updated_at": datetime.utcnow()}}
+        {"$set": {"status": "completed", "end_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
     )
     
     updated_trip = await db.db["trips"].find_one({"id": trip_id})
@@ -200,6 +259,80 @@ async def add_expense(trip_id: str, expense: Expense, current_user: UserDB = Dep
         {"$push": {"expenses": expense.dict()}}
     )
     return expense
+
+@router.get("/{trip_id}/balances")
+async def get_trip_balances(trip_id: str, current_user: UserDB = Depends(get_current_user)):
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+        
+    balances = defaultdict(float)
+    
+    participants = [p["user_id"] for p in trip_data.get("participants", [])]
+    if trip_data.get("organizer_id") not in participants:
+        participants.append(trip_data.get("organizer_id"))
+        
+    for expense in trip_data.get("expenses", []):
+        amount = expense.get("amount", 0.0)
+        paid_by = expense.get("paid_by")
+        
+        balances[paid_by] += amount
+        
+        splits = expense.get("splits", {})
+        if splits:
+            for debtor_id, owed_amount in splits.items():
+                balances[debtor_id] -= owed_amount
+        elif participants:
+            split_amount = amount / len(participants)
+            for uid in participants:
+                balances[uid] -= split_amount
+
+    users_cursor = db.db["users"].find({"id": {"$in": list(balances.keys())}})
+    user_docs = await users_cursor.to_list(length=None)
+    user_names = {u["id"]: u.get("full_name") or u.get("username") for u in user_docs}
+    
+    debtors = []
+    creditors = []
+    
+    for uid, net in balances.items():
+        if round(net, 2) < 0:
+            debtors.append({"user_id": uid, "name": user_names.get(uid, "Unknown"), "amount": abs(round(net, 2))})
+        elif round(net, 2) > 0:
+            creditors.append({"user_id": uid, "name": user_names.get(uid, "Unknown"), "amount": round(net, 2)})
+
+    debtors.sort(key=lambda x: x["amount"], reverse=True)
+    creditors.sort(key=lambda x: x["amount"], reverse=True)
+    
+    transfers = []
+    i = 0
+    j = 0
+    while i < len(debtors) and j < len(creditors):
+        debtor = debtors[i]
+        creditor = creditors[j]
+        
+        min_amount = min(debtor["amount"], creditor["amount"])
+        if min_amount > 0:
+            transfers.append({
+                "from_user_id": debtor["user_id"],
+                "from_name": debtor["name"],
+                "to_user_id": creditor["user_id"],
+                "to_name": creditor["name"],
+                "amount": round(min_amount, 2)
+            })
+            
+        debtor["amount"] -= min_amount
+        creditor["amount"] -= min_amount
+        
+        if round(debtor["amount"], 2) == 0:
+            i += 1
+        if round(creditor["amount"], 2) == 0:
+            j += 1
+            
+    return {
+        "balances": {uid: round(bal, 2) for uid, bal in balances.items()}, 
+        "transfers": transfers,
+        "user_names": user_names
+    }
 
 class CommentCreate(BaseModel):
     text: str
@@ -229,3 +362,32 @@ async def add_comment(trip_id: str, comment: CommentCreate, current_user: UserDB
         {"$push": {"comments": comment_data}}
     )
     return comment_data
+
+@router.post("/{trip_id}/photos")
+async def add_trip_photo(trip_id: str, file: UploadFile = File(...), current_user: UserDB = Depends(get_current_user)):
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+        
+    participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
+    if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
+        raise HTTPException(status_code=403, detail="Not authorized to add photos")
+        
+    if trip_data.get("status") == "planned":
+        raise HTTPException(status_code=400, detail="Cannot add photos to a trip that hasn't started yet")
+        
+    ext = file.filename.split('.')[-1] if '.' in (file.filename or "") else 'jpg'
+    filename = f"{uuid.uuid4()}.{ext}"
+    filepath = f"uploads/trips/{filename}"
+    
+    with open(filepath, "wb") as buffer:
+        shutil.copyfileobj(file.file, buffer)
+        
+    file_url = f"/uploads/trips/{filename}"
+    
+    await db.db["trips"].update_one(
+        {"id": trip_id},
+        {"$push": {"photos": file_url}}
+    )
+    
+    return {"status": "success", "url": file_url}

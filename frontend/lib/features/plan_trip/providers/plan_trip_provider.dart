@@ -173,6 +173,7 @@ class PlanTripNotifier {
     required List<TripParticipantAssignment> participants,
     double? totalDistanceKm,
     int? totalTimeMins,
+    double? fuelCostPerUnit,
     int? estimatedDays,
   }) async {
     final dio = ref.read(dioProvider);
@@ -187,6 +188,8 @@ class PlanTripNotifier {
       if (totalDistanceKm != null) 'total_distance_km': totalDistanceKm,
       // ignore: use_null_aware_elements
       if (totalTimeMins != null) 'total_estimated_time_mins': totalTimeMins,
+      // ignore: use_null_aware_elements
+      if (fuelCostPerUnit != null) 'fuel_cost_per_unit': fuelCostPerUnit,
     });
   }
 }

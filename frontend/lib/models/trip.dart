@@ -23,6 +23,7 @@ class Expense {
   final String description;
   final double amount;
   final String paidBy;
+  final Map<String, double> splits;
   final DateTime date;
 
   Expense({
@@ -30,15 +31,20 @@ class Expense {
     required this.description,
     required this.amount,
     required this.paidBy,
+    required this.splits,
     required this.date,
   });
 
   factory Expense.fromJson(Map<String, dynamic> json) {
+    final splitsMap = json['splits'] as Map<String, dynamic>? ?? {};
+    final mappedSplits = splitsMap.map((key, value) => MapEntry(key, (value as num).toDouble()));
+
     return Expense(
       id: json['id'] ?? '',
       description: json['description'] ?? '',
       amount: (json['amount'] ?? 0.0).toDouble(),
       paidBy: json['paid_by'] ?? '',
+      splits: mappedSplits,
       date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
     );
   }
@@ -82,6 +88,7 @@ class Trip {
   final List<TripParticipant> participants;
   final List<Expense> expenses;
   final List<TripComment> comments;
+  final List<String> photos;
   final DateTime createdAt;
 
   Trip({
@@ -96,6 +103,7 @@ class Trip {
     required this.participants,
     required this.expenses,
     required this.comments,
+    required this.photos,
     required this.createdAt,
   });
 
@@ -124,6 +132,7 @@ class Trip {
               ?.map((e) => TripComment.fromJson(e))
               .toList() ??
           [],
+      photos: (json['photos'] as List?)?.map((e) => e.toString()).toList() ?? [],
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }

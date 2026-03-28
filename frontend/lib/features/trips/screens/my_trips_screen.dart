@@ -6,28 +6,55 @@ import 'package:frontend/models/trip.dart';
 import 'package:frontend/features/trip_details/screens/trip_details_screen.dart';
 import 'package:frontend/features/plan_trip/screens/plan_trip_screen.dart';
 
-class MyTripsScreen extends ConsumerWidget {
+class MyTripsScreen extends ConsumerStatefulWidget {
   const MyTripsScreen({super.key});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<MyTripsScreen> createState() => _MyTripsScreenState();
+}
+
+class _MyTripsScreenState extends ConsumerState<MyTripsScreen>
+    with SingleTickerProviderStateMixin {
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 4, vsync: this);
+    _tabController.addListener(_handleTabSelection);
+  }
+
+  void _handleTabSelection() {
+    // Prevent triggering twice on tap or while swiping
+    if (_tabController.indexIsChanging) {
+      ref.invalidate(myTripsProvider);
+    }
+  }
+
+  @override
+  void dispose() {
+    _tabController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
     final tripsAsync = ref.watch(myTripsProvider);
 
-    return DefaultTabController(
-      length: 4,
-      child: Scaffold(
-        appBar: const TabBar(
-          isScrollable: true,
-          labelColor: Colors.deepPurple,
-          unselectedLabelColor: Colors.grey,
-          indicatorColor: Colors.deepPurple,
-          tabs: [
-            Tab(text: "Planned (Me)"),
-            Tab(text: "Completed (Me)"),
-            Tab(text: "Active (Participant)"),
-            Tab(text: "Completed (Participant)"),
-          ],
-        ),
+    return Scaffold(
+      appBar: TabBar(
+        controller: _tabController,
+        isScrollable: true,
+        labelColor: Colors.deepPurple,
+        unselectedLabelColor: Colors.grey,
+        indicatorColor: Colors.deepPurple,
+        tabs: const [
+          Tab(text: "Planned (Me)"),
+          Tab(text: "Completed (Me)"),
+          Tab(text: "Active (Participant)"),
+          Tab(text: "Completed (Participant)"),
+        ],
+      ),
         floatingActionButton: FloatingActionButton.extended(
           onPressed: () {
             Navigator.push(
@@ -41,6 +68,7 @@ class MyTripsScreen extends ConsumerWidget {
         body: tripsAsync.when(
           data: (categories) {
             return TabBarView(
+              controller: _tabController,
               children: [
                 _TripList(
                   trips: categories.plannedByMe,
@@ -64,8 +92,7 @@ class MyTripsScreen extends ConsumerWidget {
           loading: () => const Center(child: CircularProgressIndicator()),
           error: (err, st) => Center(child: Text("Error loading trips: $err")),
         ),
-      ),
-    );
+      );
   }
 }
 

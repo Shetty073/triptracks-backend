@@ -210,6 +210,7 @@ class _PlanTripScreenState extends ConsumerState<PlanTripScreen> {
         participants: participants,
         totalDistanceKm: double.tryParse(_distCtrl.text),
         totalTimeMins: ((double.tryParse(_timeCtrl.text) ?? 0) * 60).round(),
+        fuelCostPerUnit: double.tryParse(_fuelPriceCtrl.text) ?? 100.0,
       );
       if (!mounted) return;
       _showSnack('Trip saved!');

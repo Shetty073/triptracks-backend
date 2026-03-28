@@ -15,14 +15,26 @@ class TripStatusNotifier {
   final Ref ref;
   TripStatusNotifier(this.ref);
 
-  Future<void> updateStatus(String tripId, String status) async {
+  Future<void> startTrip(String tripId, {bool force = false}) async {
     final dio = ref.read(dioProvider);
-    await dio.put(
-      '/api/trips/$tripId/status',
-      queryParameters: {'status': status},
+    await dio.patch(
+      '/api/trips/$tripId/start',
+      queryParameters: {'force': force},
     );
+    ref.invalidate(tripDetailsProvider(tripId));
+  }
+
+  Future<void> completeTrip(String tripId) async {
+    final dio = ref.read(dioProvider);
+    await dio.patch('/api/trips/$tripId/complete');
     ref.invalidate(tripDetailsProvider(tripId));
   }
 }
 
 final tripActionProvider = Provider((ref) => TripStatusNotifier(ref));
+
+final tripBalancesProvider = FutureProvider.family<Map<String, dynamic>, String>((ref, tripId) async {
+  final dio = ref.watch(dioProvider);
+  final response = await dio.get('/api/trips/$tripId/balances');
+  return response.data as Map<String, dynamic>;
+});

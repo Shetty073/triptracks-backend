@@ -23,7 +23,7 @@ class Expense(BaseModel):
     description: str
     amount: float
     paid_by: str # user_id
-    split_ratio: Dict[str, float] = {} # user_id -> ratio or fixed amount
+    splits: Dict[str, float] = {} # user_id -> explicit amount owed
     date: datetime = Field(default_factory=datetime.utcnow)
 
 class TripBase(BaseModel):
@@ -35,6 +35,9 @@ class TripBase(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     fuel_cost_per_unit: float = 0.0
+    legs: List[Leg] = []
+    total_distance_km: float = 0.0
+    total_estimated_time_mins: int = 0
 
 class TripCreate(TripBase):
     pass
@@ -43,9 +46,6 @@ class TripDB(TripBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     organizer_id: str
     status: str = "planned" # planned, in_progress, completed
-    legs: List[Leg] = []
-    total_distance_km: float = 0.0
-    total_estimated_time_mins: int = 0
     expenses: List[Expense] = []
     comments: List[dict] = [] # Keeping it simple for now -> [{user_id, text, timestamp}]
     photos: List[str] = [] # URLs to photos

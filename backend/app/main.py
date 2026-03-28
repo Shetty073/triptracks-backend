@@ -34,6 +34,7 @@ app.include_router(chat.router, prefix="/ws/trips", tags=["websockets"])
 
 # Ensure the uploads directory exists before mounting
 os.makedirs("uploads/profiles", exist_ok=True)
+os.makedirs("uploads/trips", exist_ok=True)
 app.mount("/uploads", StaticFiles(directory="uploads"), name="uploads")
 
 @app.get("/")
