@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'dart:async';
+import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/auth_provider.dart';
 import 'package:frontend/shared/widgets/responsive_center.dart';
+import 'package:frontend/core/utils/error_handler.dart';
 
 /// Signup flows through 3 steps:
 ///   Step 0 — Enter email & send OTP
@@ -40,6 +43,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
   late AnimationController _fadeController;
   late Animation<double> _fadeAnimation;
 
+  Timer? _usernameDebounce;
+  bool _isCheckingUsername = false;
+  bool? _isUsernameAvailable;
+  String _lastCheckedUsername = '';
+
   @override
   void initState() {
     super.initState();
@@ -52,6 +60,37 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       curve: Curves.easeInOut,
     );
     _fadeController.forward();
+    _signupUsernameController.addListener(_onUsernameChanged);
+  }
+
+  void _onUsernameChanged() {
+    final username = _signupUsernameController.text.trim();
+    if (username == _lastCheckedUsername) return;
+    
+    setState(() => _isUsernameAvailable = null);
+    if (username.isEmpty) return;
+
+    if (_usernameDebounce?.isActive ?? false) _usernameDebounce!.cancel();
+    _usernameDebounce = Timer(const Duration(milliseconds: 600), () async {
+      setState(() => _isCheckingUsername = true);
+      try {
+        final isAvailable = await ref.read(authStateProvider.notifier).checkUsername(username);
+        if (mounted) {
+          setState(() {
+            _isCheckingUsername = false;
+            _isUsernameAvailable = isAvailable;
+            _lastCheckedUsername = username;
+          });
+        }
+      } catch (e) {
+        if (mounted) {
+          setState(() {
+            _isCheckingUsername = false;
+            _isUsernameAvailable = null;
+          });
+        }
+      }
+    });
   }
 
   @override
@@ -61,6 +100,8 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
     _signupEmailController.dispose();
     _otpController.dispose();
     _fullNameController.dispose();
+    _signupUsernameController.removeListener(_onUsernameChanged);
+    _usernameDebounce?.cancel();
     _signupUsernameController.dispose();
     _signupPasswordController.dispose();
     _serviceCodeController.dispose();
@@ -91,11 +132,18 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       _isLoading = true;
       _errorMessage = null;
     });
-    await ref.read(authStateProvider.notifier).login(id, pw);
-    if (mounted) setState(() => _isLoading = false);
-    final authState = ref.read(authStateProvider);
-    if (authState.hasError) {
-      _setError(_friendlyError(authState.error));
+    try {
+      print('Attempting login');
+      await ref.read(authStateProvider.notifier).login(id, pw);
+      print('Login success');
+    } catch (e) {
+      print('Caught exception in _handleLogin: $e');
+      final msg = ErrorHandler.getMessage(e);
+      print('ErrorHandler returned: $msg');
+      if (mounted) _setError(msg);
+    } finally {
+      print('Running finally block in _handleLogin');
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
@@ -118,7 +166,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       });
       _fadeController.forward();
     } catch (e) {
-      if (mounted) _setError(_friendlyError(e));
+      if (mounted) _setError(ErrorHandler.getMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -144,7 +192,7 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       });
       _fadeController.forward();
     } catch (e) {
-      if (mounted) _setError(_friendlyError(e));
+      if (mounted) _setError(ErrorHandler.getMessage(e));
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -159,6 +207,10 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       _setError('Username, password, and service code are required.');
       return;
     }
+    if (_isUsernameAvailable == false) {
+      _setError('Username is already taken.');
+      return;
+    }
     if (serviceCode.length != 12) {
       _setError('Service code must be exactly 12 characters.');
       return;
@@ -168,35 +220,21 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
       _isLoading = true;
       _errorMessage = null;
     });
-    await ref
-        .read(authStateProvider.notifier)
-        .register(
-          email: _signupEmailController.text.trim(),
-          username: username,
-          password: password,
-          serviceCode: serviceCode,
-          fullName: _fullNameController.text.trim().isNotEmpty
-              ? _fullNameController.text.trim()
-              : null,
-        );
-    if (mounted) setState(() => _isLoading = false);
-    final authState = ref.read(authStateProvider);
-    if (authState.hasError) _setError(_friendlyError(authState.error));
-  }
-
-  String _friendlyError(dynamic e) {
-    final msg = e.toString();
-    // Extract backend detail from DioException
-    if (msg.contains('detail')) {
-      final match = RegExp(r'"detail":\s*"([^"]+)"').firstMatch(msg);
-      if (match != null) return match.group(1)!;
+    try {
+      await ref.read(authStateProvider.notifier).register(
+            email: _signupEmailController.text.trim(),
+            username: username,
+            password: password,
+            serviceCode: serviceCode,
+            fullName: _fullNameController.text.trim().isNotEmpty
+                ? _fullNameController.text.trim()
+                : null,
+          );
+    } catch (e) {
+      if (mounted) _setError(ErrorHandler.getMessage(e));
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
-    if (msg.contains('400')) {
-      return 'Request failed. Please check your details.';
-    }
-    if (msg.contains('401')) return 'Not authorised.';
-    if (msg.contains('500')) return 'Server error. Please try again later.';
-    return msg.replaceFirst('Exception: ', '');
   }
 
   @override
@@ -429,9 +467,11 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         const SizedBox(height: 16),
         TextField(
           controller: _signupUsernameController,
-          decoration: const InputDecoration(
+          decoration: InputDecoration(
             labelText: 'Username',
-            prefixIcon: Icon(Icons.alternate_email),
+            prefixIcon: const Icon(Icons.alternate_email),
+            errorText: _isUsernameAvailable == false ? 'Username is taken' : null,
+            suffixIcon: _buildUsernameSuffix(),
           ),
         ),
         const SizedBox(height: 16),
@@ -498,5 +538,25 @@ class _AuthScreenState extends ConsumerState<AuthScreen>
         ),
       ),
     );
+  }
+
+  Widget? _buildUsernameSuffix() {
+    if (_signupUsernameController.text.trim().isEmpty) return null;
+    if (_isCheckingUsername) {
+      return const Padding(
+        padding: EdgeInsets.all(12.0),
+        child: SizedBox(
+          width: 16, height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        ),
+      );
+    }
+    if (_isUsernameAvailable == true) {
+      return const Icon(Icons.check_circle, color: Colors.green);
+    }
+    if (_isUsernameAvailable == false) {
+      return const Icon(Icons.cancel, color: Colors.red);
+    }
+    return null;
   }
 }

@@ -109,6 +109,16 @@ async def register(req: RegisterRequest):
     return user_db
 
 
+# ─── Username Availability ────────────────────────────────────────────────────
+
+@router.get("/check-username")
+async def check_username(username: str):
+    user_dict = await db.db["users"].find_one({"username": username})
+    if user_dict:
+        return {"available": False}
+    return {"available": True}
+
+
 # ─── Login ────────────────────────────────────────────────────────────────────
 
 @router.post("/login", response_model=Token)
@@ -131,6 +141,12 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
 # ─── Auth Dependency ──────────────────────────────────────────────────────────
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
+    return await _get_user_from_token(token)
+
+async def get_current_user_from_query(token: str):
+    return await _get_user_from_token(token)
+
+async def _get_user_from_token(token: str):
     from jose import jwt, JWTError
     from app.core.config import settings
     credentials_exception = HTTPException(

@@ -1,3 +1,61 @@
+class VehicleFuelCost {
+  final String vehicleId;
+  final String vehicleName;
+  final int passengers;
+  final double totalFuelCost;
+  final double fuelCostPerPerson;
+
+  VehicleFuelCost({
+    required this.vehicleId,
+    required this.vehicleName,
+    required this.passengers,
+    required this.totalFuelCost,
+    required this.fuelCostPerPerson,
+  });
+
+  factory VehicleFuelCost.fromJson(Map<String, dynamic> json) {
+    return VehicleFuelCost(
+      vehicleId: json['vehicle_id'] ?? '',
+      vehicleName: json['vehicle_name'] ?? 'Vehicle',
+      passengers: json['passengers'] ?? 1,
+      totalFuelCost: (json['total_fuel_cost'] ?? 0.0).toDouble(),
+      fuelCostPerPerson: (json['fuel_cost_per_person'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
+class EstimatedCosts {
+  final List<VehicleFuelCost> vehicleFuelCosts;
+  final double totalFuelCost;
+  final double totalStayCost;
+  final double stayCostPerPerson;
+  final double totalFoodCost;
+  final double foodCostPerPerson;
+
+  EstimatedCosts({
+    required this.vehicleFuelCosts,
+    required this.totalFuelCost,
+    required this.totalStayCost,
+    required this.stayCostPerPerson,
+    required this.totalFoodCost,
+    required this.foodCostPerPerson,
+  });
+
+  factory EstimatedCosts.fromJson(Map<String, dynamic> json) {
+    return EstimatedCosts(
+      vehicleFuelCosts: (json['vehicle_fuel_costs'] as List?)
+              ?.map((e) => VehicleFuelCost.fromJson(e))
+              .toList() ??
+          [],
+      totalFuelCost: (json['total_fuel_cost'] ?? 0.0).toDouble(),
+      totalStayCost: (json['total_stay_cost'] ?? 0.0).toDouble(),
+      stayCostPerPerson: (json['stay_cost_per_person'] ?? 0.0).toDouble(),
+      totalFoodCost: (json['total_food_cost'] ?? 0.0).toDouble(),
+      foodCostPerPerson: (json['food_cost_per_person'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
 class TripParticipant {
   final String userId;
   final bool isDriver;
@@ -23,6 +81,7 @@ class Expense {
   final String description;
   final double amount;
   final String paidBy;
+  final Map<String, double> splits;
   final DateTime date;
 
   Expense({
@@ -30,15 +89,20 @@ class Expense {
     required this.description,
     required this.amount,
     required this.paidBy,
+    required this.splits,
     required this.date,
   });
 
   factory Expense.fromJson(Map<String, dynamic> json) {
+    final splitsMap = json['splits'] as Map<String, dynamic>? ?? {};
+    final mappedSplits = splitsMap.map((key, value) => MapEntry(key, (value as num).toDouble()));
+
     return Expense(
       id: json['id'] ?? '',
       description: json['description'] ?? '',
       amount: (json['amount'] ?? 0.0).toDouble(),
       paidBy: json['paid_by'] ?? '',
+      splits: mappedSplits,
       date: DateTime.tryParse(json['date'] ?? '') ?? DateTime.now(),
     );
   }
@@ -70,6 +134,58 @@ class TripComment {
   }
 }
 
+class TripPhoto {
+  final String id;
+  final String url;
+  final String uploadedBy;
+  final String username;
+  final String albumId;
+  final DateTime uploadedAt;
+
+  TripPhoto({
+    required this.id,
+    required this.url,
+    required this.uploadedBy,
+    required this.username,
+    required this.albumId,
+    required this.uploadedAt,
+  });
+
+  factory TripPhoto.fromJson(Map<String, dynamic> json) {
+    return TripPhoto(
+      id: json['id'] ?? '',
+      url: json['url'] ?? '',
+      uploadedBy: json['uploaded_by'] ?? '',
+      username: json['username'] ?? '',
+      albumId: json['album_id'] ?? 'general',
+      uploadedAt: DateTime.tryParse(json['uploaded_at'] ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
+class TripAlbum {
+  final String id;
+  final String name;
+  final String createdBy;
+  final DateTime createdAt;
+
+  TripAlbum({
+    required this.id,
+    required this.name,
+    required this.createdBy,
+    required this.createdAt,
+  });
+
+  factory TripAlbum.fromJson(Map<String, dynamic> json) {
+    return TripAlbum(
+      id: json['id'] ?? '',
+      name: json['name'] ?? '',
+      createdBy: json['created_by'] ?? '',
+      createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
+    );
+  }
+}
+
 class Trip {
   final String id;
   final String organizerId;
@@ -82,6 +198,9 @@ class Trip {
   final List<TripParticipant> participants;
   final List<Expense> expenses;
   final List<TripComment> comments;
+  final List<TripPhoto> photos;
+  final List<TripAlbum> albums;
+  final EstimatedCosts? estimatedCosts;
   final DateTime createdAt;
 
   Trip({
@@ -96,6 +215,9 @@ class Trip {
     required this.participants,
     required this.expenses,
     required this.comments,
+    required this.photos,
+    required this.albums,
+    this.estimatedCosts,
     required this.createdAt,
   });
 
@@ -124,6 +246,17 @@ class Trip {
               ?.map((e) => TripComment.fromJson(e))
               .toList() ??
           [],
+      photos: (json['photos'] as List?)
+              ?.map((e) => e is String ? TripPhoto(id: '', url: e, uploadedBy: '', username: '', albumId: 'general', uploadedAt: DateTime.now()) : TripPhoto.fromJson(e))
+              .toList() ??
+          [],
+      albums: (json['albums'] as List?)
+              ?.map((e) => TripAlbum.fromJson(e))
+              .toList() ??
+          [],
+      estimatedCosts: json['estimated_costs'] != null
+          ? EstimatedCosts.fromJson(json['estimated_costs'])
+          : null,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }

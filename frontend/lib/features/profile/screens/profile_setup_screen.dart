@@ -5,6 +5,7 @@ import 'package:frontend/features/profile/providers/profile_provider.dart';
 import 'package:frontend/core/auth_provider.dart';
 import 'package:frontend/core/constants.dart';
 import 'package:frontend/shared/widgets/responsive_center.dart';
+import 'package:frontend/core/utils/error_handler.dart';
 
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
@@ -86,9 +87,9 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
       ).showSnackBar(const SnackBar(content: Text('Profile photo updated!')));
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text('Upload failed: $e')));
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Upload failed: ${ErrorHandler.getMessage(e)}')),
+      );
     } finally {
       if (mounted) setState(() => _uploading = false);
     }

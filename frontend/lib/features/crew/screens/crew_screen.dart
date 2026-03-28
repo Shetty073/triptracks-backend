@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/features/crew/providers/crew_provider.dart';
 import 'package:frontend/shared/widgets/responsive_center.dart';
+import 'package:frontend/core/utils/error_handler.dart';
 
 class CrewScreen extends ConsumerStatefulWidget {
   const CrewScreen({super.key});
@@ -10,12 +11,29 @@ class CrewScreen extends ConsumerStatefulWidget {
   ConsumerState<CrewScreen> createState() => _CrewScreenState();
 }
 
-class _CrewScreenState extends ConsumerState<CrewScreen> {
+class _CrewScreenState extends ConsumerState<CrewScreen> with SingleTickerProviderStateMixin {
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    // Check if user changed to the first tab (My Crew)
+    if (_tabController.index == 0 && !_tabController.indexIsChanging) {
+      ref.invalidate(myCrewProvider);
+    }
+  }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -24,15 +42,14 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('My Crew')),
-      body: DefaultTabController(
-        length: 3,
-        child: Column(
-          children: [
-            const TabBar(
+      body: Column(
+        children: [
+            TabBar(
+              controller: _tabController,
               labelColor: Colors.deepPurple,
               unselectedLabelColor: Colors.grey,
               indicatorColor: Colors.deepPurple,
-              tabs: [
+              tabs: const [
                 Tab(text: 'My Crew'),
                 Tab(text: 'Requests'),
                 Tab(text: 'Search'),
@@ -40,6 +57,7 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
             ),
             Expanded(
               child: TabBarView(
+                controller: _tabController,
                 children: [
                   ResponsiveCenter(child: _MyCrewList()),
                   ResponsiveCenter(child: _PendingRequestsList()),
@@ -55,7 +73,6 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }
@@ -77,7 +94,11 @@ class _MyCrewList extends ConsumerWidget {
             final user = crew[index];
             return ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text(user.username),
+              title: Text(
+                user.fullName != null && user.fullName!.isNotEmpty
+                    ? '${user.username} (${user.fullName})'
+                    : user.username,
+              ),
               subtitle: Text(user.email),
             );
           },
@@ -181,9 +202,9 @@ class _SearchCrew extends ConsumerWidget {
                           );
                         } catch (e) {
                           if (!context.mounted) return;
-                          ScaffoldMessenger.of(
-                            context,
-                          ).showSnackBar(SnackBar(content: Text('Error: $e')));
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(content: Text(ErrorHandler.getMessage(e))),
+                          );
                         }
                       },
                     ),

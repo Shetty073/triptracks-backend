@@ -36,12 +36,19 @@ dependencies:
   cupertino_icons: ^1.0.8
   flutter_riverpod: ^3.2.1
   dio: ^5.9.1
-  web_socket_channel: ^3.0.3
-  google_maps_flutter: ^2.14.2
+  # OpenStreetMap Engine
+  flutter_map: ^8.2.2
+  latlong2: ^0.9.1
   shared_preferences: ^2.5.4
   intl: ^0.20.2
   flutter_secure_storage: ^10.0.0
   image_picker: ^1.2.1
+  web_socket_channel: ^3.0.3
+  flutter_local_notifications: ^18.0.1
+  url_launcher: ^6.3.2
+  path_provider: ^2.1.5
+  flutter_file_saver: ^0.9.0
+  flutter_downloader: ^1.12.0
 
 dev_dependencies:
   flutter_test:

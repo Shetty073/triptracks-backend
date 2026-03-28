@@ -1,7 +1,9 @@
-from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query
-from typing import Dict, List
+from fastapi import APIRouter, WebSocket, WebSocketDisconnect, Query, Depends
+from typing import Dict, List, Optional
 import json
 from app.core.database import db
+from app.api.auth import get_current_user
+from app.models.user import UserDB
 from datetime import datetime
 import uuid
 
@@ -24,9 +26,21 @@ class ConnectionManager:
             del self.active_connections[trip_id]
 
     async def broadcast_to_trip(self, message: str, trip_id: str):
-        if trip_id in self.active_connections:
-            for connection in self.active_connections[trip_id]:
+        if trip_id not in self.active_connections:
+            return
+        dead = []
+        for connection in list(self.active_connections[trip_id]):
+            try:
                 await connection.send_text(message)
+            except Exception:
+                dead.append(connection)
+        for c in dead:
+            try:
+                self.active_connections[trip_id].remove(c)
+            except ValueError:
+                pass
+        if not self.active_connections.get(trip_id):
+            self.active_connections.pop(trip_id, None)
 
 manager = ConnectionManager()
 
@@ -82,3 +96,30 @@ async def websocket_endpoint(websocket: WebSocket, trip_id: str, user_id: str = 
             "timestamp": datetime.utcnow().isoformat()
         }
         await manager.broadcast_to_trip(json.dumps(leave_msg), trip_id)
+
+@router.get("/{trip_id}/history")
+async def get_chat_history(
+    trip_id: str,
+    limit: int = 10,
+    before_id: Optional[str] = None,
+    current_user: UserDB = Depends(get_current_user),
+):
+    """Returns paginated chat messages for a trip, newest first, skipping system messages."""
+    query: dict = {"trip_id": trip_id, "type": "chat"}
+
+    if before_id:
+        # Find the timestamp of the anchor message, then fetch older ones
+        anchor = await db.db["trip_chats"].find_one({"id": before_id})
+        if anchor:
+            query["timestamp"] = {"$lt": anchor["timestamp"]}
+
+    cursor = (
+        db.db["trip_chats"]
+        .find(query, {"_id": 0})
+        .sort("timestamp", -1)
+        .limit(limit)
+    )
+    messages = await cursor.to_list(length=limit)
+    # Return in oldest-first order so the UI can prepend them naturally
+    messages.reverse()
+    return messages

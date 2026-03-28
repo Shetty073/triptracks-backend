@@ -8,6 +8,8 @@ import 'package:frontend/shared/widgets/trip_card.dart';
 import 'package:frontend/features/trips/screens/my_trips_screen.dart';
 import 'package:frontend/features/crew/screens/crew_screen.dart';
 import 'package:frontend/features/trip_details/screens/trip_details_screen.dart';
+import 'package:frontend/features/trips/providers/trips_provider.dart';
+import 'package:frontend/features/crew/providers/crew_provider.dart';
 
 class HomeFeedScreen extends ConsumerStatefulWidget {
   const HomeFeedScreen({super.key});
@@ -46,7 +48,14 @@ class _HomeFeedScreenState extends ConsumerState<HomeFeedScreen> {
       body: screens[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        onTap: (idx) => setState(() => _currentIndex = idx),
+        onTap: (idx) {
+          if (idx == 1) {
+            ref.invalidate(myTripsProvider);
+          } else if (idx == 2) {
+            ref.invalidate(myCrewProvider);
+          }
+          setState(() => _currentIndex = idx);
+        },
         type: BottomNavigationBarType.fixed,
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Feed'),

@@ -23,8 +23,23 @@ class Expense(BaseModel):
     description: str
     amount: float
     paid_by: str # user_id
-    split_ratio: Dict[str, float] = {} # user_id -> ratio or fixed amount
+    splits: Dict[str, float] = {} # user_id -> explicit amount owed
     date: datetime = Field(default_factory=datetime.utcnow)
+
+class VehicleFuelCost(BaseModel):
+    vehicle_id: str
+    vehicle_name: str
+    passengers: int
+    total_fuel_cost: float
+    fuel_cost_per_person: float
+
+class EstimatedCosts(BaseModel):
+    vehicle_fuel_costs: List[VehicleFuelCost] = []
+    total_fuel_cost: float = 0.0
+    total_stay_cost: float = 0.0
+    stay_cost_per_person: float = 0.0
+    total_food_cost: float = 0.0
+    food_cost_per_person: float = 0.0
 
 class TripBase(BaseModel):
     title: str
@@ -35,19 +50,42 @@ class TripBase(BaseModel):
     start_date: Optional[datetime] = None
     end_date: Optional[datetime] = None
     fuel_cost_per_unit: float = 0.0
+    legs: List[Leg] = []
+    total_distance_km: float = 0.0
+    total_estimated_time_mins: int = 0
 
 class TripCreate(TripBase):
     pass
+
+class TripComment(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    user_id: str
+    username: str
+    text: str
+    timestamp: datetime = Field(default_factory=datetime.utcnow)
+
+class TripPhoto(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    url: str
+    uploaded_by: str
+    username: str
+    album_id: Optional[str] = "general"
+    uploaded_at: datetime = Field(default_factory=datetime.utcnow)
+
+class TripAlbum(BaseModel):
+    id: str = Field(default_factory=lambda: str(uuid.uuid4()))
+    name: str
+    created_by: str
+    created_at: datetime = Field(default_factory=datetime.utcnow)
 
 class TripDB(TripBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     organizer_id: str
     status: str = "planned" # planned, in_progress, completed
-    legs: List[Leg] = []
-    total_distance_km: float = 0.0
-    total_estimated_time_mins: int = 0
     expenses: List[Expense] = []
-    comments: List[dict] = [] # Keeping it simple for now -> [{user_id, text, timestamp}]
-    photos: List[str] = [] # URLs to photos
+    comments: List[TripComment] = []
+    photos: List[TripPhoto] = []
+    albums: List[TripAlbum] = []
+    estimated_costs: Optional[EstimatedCosts] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)
