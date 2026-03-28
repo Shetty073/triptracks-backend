@@ -94,7 +94,11 @@ class _MyCrewList extends ConsumerWidget {
             final user = crew[index];
             return ListTile(
               leading: const CircleAvatar(child: Icon(Icons.person)),
-              title: Text(user.username),
+              title: Text(
+                user.fullName != null && user.fullName!.isNotEmpty
+                    ? '${user.username} (${user.fullName})'
+                    : user.username,
+              ),
               subtitle: Text(user.email),
             );
           },

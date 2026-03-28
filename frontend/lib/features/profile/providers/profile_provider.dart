@@ -51,7 +51,7 @@ final profileSettingsProvider = FutureProvider<UserProfileSettings>((
 ) async {
   final authState = ref.watch(authStateProvider);
 
-  if (authState.isLoading || authState.valueOrNull == null) {
+  if (authState.isLoading || authState.value == null) {
     return UserProfileSettings(
       distanceUnit: 'km',
       currency: 'USD',
