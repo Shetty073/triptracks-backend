@@ -136,12 +136,15 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
   final _descController = TextEditingController();
   final _amountController = TextEditingController();
   String _splitType = 'Equal'; // 'Equal', 'Amount', 'Percent'
-  
+
   // controllers for explicit amounts/percents per user
   final Map<String, TextEditingController> _splitControllers = {};
-  
+
   // We need the list of users to split among.
   late List<String> _userIds;
+
+  // For Equal split: which members are included
+  late Set<String> _selectedUserIds;
 
   @override
   void initState() {
@@ -150,6 +153,8 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
     if (!_userIds.contains(widget.trip.organizerId)) {
       _userIds.add(widget.trip.organizerId);
     }
+    // Default: all members selected for equal split
+    _selectedUserIds = Set.from(_userIds);
     for (var uid in _userIds) {
       _splitControllers[uid] = TextEditingController();
     }
@@ -176,8 +181,15 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
 
     Map<String, double> splits = {};
     if (_splitType == 'Equal') {
-      final perPerson = amount / _userIds.length;
-      for (var uid in _userIds) {
+      // Only split among selected members
+      final included = _selectedUserIds.toList();
+      if (included.isEmpty) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Please select at least one member')));
+        return;
+      }
+      final perPerson = amount / included.length;
+      for (var uid in included) {
         splits[uid] = perPerson;
       }
     } else {
@@ -254,10 +266,32 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
                 if (v != null) setState(() => _splitType = v);
               },
             ),
+            if (_splitType == 'Equal') ...[
+              const SizedBox(height: 16),
+              const Text('Split among:', style: TextStyle(fontWeight: FontWeight.w600)),
+              ..._userIds.map((uid) {
+                final name = widget.userNames[uid]?.toString() ?? uid.substring(0, 8);
+                return CheckboxListTile(
+                  dense: true,
+                  contentPadding: EdgeInsets.zero,
+                  title: Text(name),
+                  value: _selectedUserIds.contains(uid),
+                  onChanged: (checked) {
+                    setState(() {
+                      if (checked == true) {
+                        _selectedUserIds.add(uid);
+                      } else {
+                        _selectedUserIds.remove(uid);
+                      }
+                    });
+                  },
+                );
+              }),
+            ],
             if (_splitType != 'Equal') ...[
               const SizedBox(height: 16),
               ..._userIds.map((uid) {
-                final name = widget.userNames[uid] ?? 'Unknown';
+                final name = widget.userNames[uid]?.toString() ?? uid.substring(0, 8);
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(
@@ -270,7 +304,6 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
                           keyboardType: TextInputType.number,
                           decoration: InputDecoration(
                             suffixText: _splitType == 'Percent' ? '%' : null,
-                            prefixText: _splitType == 'Amount' ? '\$' : null,
                             isDense: true,
                           ),
                         ),
