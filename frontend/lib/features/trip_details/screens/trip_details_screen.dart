@@ -8,6 +8,8 @@ import 'package:frontend/features/trip_details/screens/chat_tab.dart';
 import 'package:frontend/features/trip_details/screens/comments_tab.dart';
 import 'package:frontend/features/trip_details/screens/photos_tab.dart';
 import 'package:frontend/core/utils/error_handler.dart';
+import 'package:frontend/core/utils/currency_helper.dart';
+import 'package:frontend/features/profile/providers/profile_provider.dart';
 
 class TripDetailsScreen extends ConsumerWidget {
   final String tripId;
@@ -110,30 +112,52 @@ class _InfoTab extends ConsumerWidget {
 
         if (trip.estimatedCosts != null) ...[
           const SizedBox(height: 16),
-          Card(
-            color: Colors.deepPurple.shade50,
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  const Text('💰 Estimated Projections', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.deepPurple)),
-                  const Divider(),
-                  Text('Food (Total): \$${trip.estimatedCosts!.totalFoodCost.toStringAsFixed(2)}'),
-                  Text('Food (Per Person): \$${trip.estimatedCosts!.foodCostPerPerson.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  Text('Stay (Total): \$${trip.estimatedCosts!.totalStayCost.toStringAsFixed(2)}'),
-                  Text('Stay (Per Person): \$${trip.estimatedCosts!.stayCostPerPerson.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold)),
-                  const SizedBox(height: 8),
-                  const Text('Fuel by Vehicle:', style: TextStyle(fontWeight: FontWeight.bold)),
-                  ...trip.estimatedCosts!.vehicleFuelCosts.map((v) => Padding(
-                        padding: const EdgeInsets.only(left: 8.0, top: 4.0),
-                        child: Text('🚗 ${v.vehicleName}: \$${v.totalFuelCost.toStringAsFixed(2)} (\u{1F465} \$${v.fuelCostPerPerson.toStringAsFixed(2)}/person)', style: TextStyle(color: Colors.grey.shade800)),
-                      )),
-                ],
+          Builder(builder: (context) {
+            final currency = ref
+                .watch(profileSettingsProvider)
+                .value
+                ?.currency;
+            final costs = trip.estimatedCosts!;
+            return Card(
+              color: Colors.deepPurple.shade50,
+              child: Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('💰 Estimated Projections',
+                        style: TextStyle(
+                            fontSize: 18,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.deepPurple)),
+                    const Divider(),
+                    Text('Food (Total): ${CurrencyHelper.format(costs.totalFoodCost, currency)}'),
+                    Text(
+                      'Food (Per Person): ${CurrencyHelper.format(costs.foodCostPerPerson, currency)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    Text('Stay (Total): ${CurrencyHelper.format(costs.totalStayCost, currency)}'),
+                    Text(
+                      'Stay (Per Person): ${CurrencyHelper.format(costs.stayCostPerPerson, currency)}',
+                      style: const TextStyle(fontWeight: FontWeight.bold),
+                    ),
+                    const SizedBox(height: 8),
+                    const Text('Fuel by Vehicle:',
+                        style: TextStyle(fontWeight: FontWeight.bold)),
+                    ...costs.vehicleFuelCosts.map((v) => Padding(
+                          padding: const EdgeInsets.only(left: 8.0, top: 4.0),
+                          child: Text(
+                            '🚗 ${v.vehicleName}: ${CurrencyHelper.format(v.totalFuelCost, currency)} '
+                            '(👥 ${CurrencyHelper.format(v.fuelCostPerPerson, currency)}/person)',
+                            style: TextStyle(color: Colors.grey.shade800),
+                          ),
+                        )),
+                  ],
+                ),
               ),
-            ),
-          ),
+            );
+          }),
         ],
 
         const SizedBox(height: 24),

@@ -7,6 +7,8 @@ import 'package:frontend/features/trip_details/providers/trip_interactions_provi
 import 'package:frontend/features/trip_details/providers/trip_details_provider.dart';
 import 'package:frontend/shared/widgets/responsive_center.dart';
 import 'package:frontend/core/utils/error_handler.dart';
+import 'package:frontend/core/utils/currency_helper.dart';
+import 'package:frontend/features/profile/providers/profile_provider.dart';
 import 'package:intl/intl.dart';
 
 class ExpensesTab extends ConsumerWidget {
@@ -71,7 +73,7 @@ class _TransactionsViewState extends ConsumerState<_TransactionsView> {
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 Text(
-                  'Total: \$${totalExpenses.toStringAsFixed(2)}',
+                  'Total: ${CurrencyHelper.format(totalExpenses, ref.read(profileSettingsProvider).value?.currency)}',
                   style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
                 ),
                 ElevatedButton.icon(
@@ -108,7 +110,7 @@ class _TransactionsViewState extends ConsumerState<_TransactionsView> {
                           'Paid by $name on ${DateFormat.yMd().format(expense.date)}',
                         ),
                         trailing: Text(
-                          '\$${expense.amount.toStringAsFixed(2)}',
+                          '${CurrencyHelper.format(expense.amount, ref.read(profileSettingsProvider).value?.currency)}',
                           style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
                         ),
                       );
@@ -318,7 +320,7 @@ class _BalancesView extends ConsumerWidget {
                   child: Icon(Icons.currency_exchange, color: Colors.white),
                 ),
                 title: Text('${t['from_name']} owes ${t['to_name']}'),
-                subtitle: Text('\$${amount.toStringAsFixed(2)}', style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                subtitle: Text(CurrencyHelper.format(amount, ref.read(profileSettingsProvider).value?.currency), style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
                 trailing: ElevatedButton(
                   style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
                   onPressed: () async {
