@@ -39,11 +39,7 @@ class _TripDetailsView extends ConsumerWidget {
       length: 5,
       child: Column(
         children: [
-          SizedBox(
-            height: 250,
-            width: double.infinity,
-            child: TripMapWidget(trip: trip),
-          ),
+          TripMapAccordion(trip: trip),
 
           const TabBar(
             isScrollable: true,
