@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:google_maps_flutter/google_maps_flutter.dart';
+import 'package:flutter_map/flutter_map.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:frontend/models/trip.dart';
 
 class TripMapWidget extends StatelessWidget {
@@ -21,14 +22,15 @@ class TripMapWidget extends StatelessWidget {
       (trip.source['lng'] as num).toDouble(),
     );
 
-    Set<Marker> markers = {
+    List<Marker> markers = [
       Marker(
-        markerId: const MarkerId('source'),
-        position: sourceLatLng,
-        infoWindow: InfoWindow(title: 'Start: ${trip.source['name']}'),
-        icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueGreen),
-      ),
-    };
+        point: sourceLatLng,
+        width: 80,
+        height: 80,
+        alignment: Alignment.topCenter,
+        child: const Icon(Icons.location_on, color: Colors.green, size: 40),
+      )
+    ];
 
     if (trip.destination['lat'] != null) {
       final destLatLng = LatLng(
@@ -37,19 +39,30 @@ class TripMapWidget extends StatelessWidget {
       );
       markers.add(
         Marker(
-          markerId: const MarkerId('destination'),
-          position: destLatLng,
-          infoWindow: InfoWindow(title: 'End: ${trip.destination['name']}'),
-          icon: BitmapDescriptor.defaultMarkerWithHue(BitmapDescriptor.hueRed),
+          point: destLatLng,
+          width: 80,
+          height: 80,
+          alignment: Alignment.topCenter,
+          child: const Icon(Icons.flag, color: Colors.red, size: 40),
         ),
       );
     }
 
-    return GoogleMap(
-      initialCameraPosition: CameraPosition(target: sourceLatLng, zoom: 12.0),
-      markers: markers,
-      myLocationEnabled: false,
-      zoomControlsEnabled: false,
+    return FlutterMap(
+      options: MapOptions(
+        initialCenter: sourceLatLng,
+        initialZoom: 12.0,
+        interactionOptions: const InteractionOptions(
+          flags: InteractiveFlag.all & ~InteractiveFlag.rotate,
+        ),
+      ),
+      children: [
+        TileLayer(
+          urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+          userAgentPackageName: 'com.triptracks.frontend',
+        ),
+        MarkerLayer(markers: markers),
+      ],
     );
   }
 }
