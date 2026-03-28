@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:frontend/core/auth_provider.dart';
 import 'package:frontend/core/api_client.dart';
 import 'package:frontend/core/constants.dart';
+import 'package:frontend/core/notification_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';
@@ -44,22 +46,32 @@ class ChatTab extends ConsumerStatefulWidget {
   ConsumerState<ChatTab> createState() => _ChatTabState();
 }
 
-class _ChatTabState extends ConsumerState<ChatTab> {
+class _ChatTabState extends ConsumerState<ChatTab>
+    with AutomaticKeepAliveClientMixin {
   final List<ChatMessage> _messages = [];
   final _textController = TextEditingController();
   final _scrollController = ScrollController();
+  final _inputFocusNode = FocusNode();   // ← keeps keyboard focus after send
   WebSocketChannel? _channel;
   String? _currentUserId;
+  String? _tripTitle;  // for notification title
 
   bool _isLoadingHistory = false;
   bool _hasMoreHistory = true;
   String? _oldestLoadedId; // cursor for pagination
+  bool _notifBannerDismissed = false;
+
+  @override
+  bool get wantKeepAlive => true; // Prevents widget destruction on tab switch
 
   @override
   void initState() {
     super.initState();
-    _connectWebSocket();
-    _loadHistory();
+    // Defer so the Riverpod auth state is guaranteed to be resolved
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _connectWebSocket();
+      _loadHistory();
+    });
     _scrollController.addListener(_onScroll);
   }
 
@@ -68,6 +80,7 @@ class _ChatTabState extends ConsumerState<ChatTab> {
     _channel?.sink.close();
     _textController.dispose();
     _scrollController.dispose();
+    _inputFocusNode.dispose();
     super.dispose();
   }
 
@@ -128,25 +141,39 @@ class _ChatTabState extends ConsumerState<ChatTab> {
     _channel!.stream.listen(
       (data) {
         if (!mounted) return;
-        final decodedData = json.decode(data);
-        setState(() {
-          if (decodedData['type'] == 'chat' ||
-              decodedData['type'] == 'system') {
-            _messages.add(ChatMessage.fromJson(decodedData));
+        try {
+          final decodedData = json.decode(data.toString()) as Map<String, dynamic>;
+          setState(() {
+            if (decodedData['type'] == 'chat' ||
+                decodedData['type'] == 'system') {
+              _messages.add(ChatMessage.fromJson(decodedData));
+            }
+          });
+          // Notify if message is from someone else
+          if (decodedData['type'] == 'chat' &&
+              decodedData['user_id'] != _currentUserId) {
+            try {
+              NotificationService.instance.showChatMessage(
+                tripTitle: _tripTitle ?? 'Trip Chat',
+                sender: decodedData['username'] ?? 'Someone',
+                text: decodedData['text'] ?? '',
+              );
+            } catch (_) {}
           }
-        });
-        // Auto-scroll to bottom on new message
-        WidgetsBinding.instance.addPostFrameCallback((_) {
-          if (_scrollController.hasClients) {
-            _scrollController.animateTo(
-              _scrollController.position.maxScrollExtent,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOut,
-            );
-          }
-        });
+          // Auto-scroll to bottom
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 200),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+        } catch (_) {}
       },
       onError: (_) {},
+      cancelOnError: false,
     );
   }
 
@@ -154,6 +181,8 @@ class _ChatTabState extends ConsumerState<ChatTab> {
     if (_textController.text.trim().isEmpty || _channel == null) return;
     _channel!.sink.add(json.encode({'type': 'chat', 'text': _textController.text.trim()}));
     _textController.clear();
+    // Keep keyboard open and input focused after sending
+    _inputFocusNode.requestFocus();
   }
 
   // ── UI ─────────────────────────────────────────────────────────────────────
@@ -225,8 +254,31 @@ class _ChatTabState extends ConsumerState<ChatTab> {
 
   @override
   Widget build(BuildContext context) {
+    super.build(context); // Required for AutomaticKeepAliveClientMixin
     return Column(
       children: [
+        // ── Notification permission banner (Web only) ──────────────────────
+        if (kIsWeb && !_notifBannerDismissed)
+          MaterialBanner(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            content: const Text(
+              '🔔 Enable notifications to get alerted about new messages.',
+              style: TextStyle(fontSize: 13),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () {
+                  NotificationService.instance.requestWebPermission();
+                  setState(() => _notifBannerDismissed = true);
+                },
+                child: const Text('Enable'),
+              ),
+              TextButton(
+                onPressed: () => setState(() => _notifBannerDismissed = true),
+                child: const Text('Dismiss'),
+              ),
+            ],
+          ),
         // ── "Load more" spinner at the top ──────────────────────────────────
         if (_isLoadingHistory)
           const Padding(
@@ -271,6 +323,7 @@ class _ChatTabState extends ConsumerState<ChatTab> {
               Expanded(
                 child: TextField(
                   controller: _textController,
+                  focusNode: _inputFocusNode,
                   decoration: InputDecoration(
                     hintText: 'Type a message...',
                     filled: true,

@@ -6,8 +6,11 @@ import 'package:frontend/core/auth_provider.dart';
 import 'package:frontend/features/feed/screens/home_feed_screen.dart';
 import 'package:frontend/core/providers/theme_provider.dart';
 
+import 'package:frontend/core/notification_service.dart';
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.instance.initialize();
   runApp(const ProviderScope(child: TripTracksApp()));
 }
 
