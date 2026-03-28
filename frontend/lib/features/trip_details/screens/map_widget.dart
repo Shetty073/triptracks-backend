@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:frontend/models/trip.dart';
+import 'package:frontend/core/constants.dart';
 
 /// Wraps the map inside an ExpansionTile so tiles are only fetched when opened.
 class TripMapAccordion extends StatefulWidget {
@@ -118,14 +119,29 @@ class TripMapWidget extends StatelessWidget {
       final maxLat = max(srcLat, destLatLng.latitude);
       final minLng = min(srcLng, destLatLng.longitude);
       final maxLng = max(srcLng, destLatLng.longitude);
-      cameraFit = CameraFit.bounds(
-        bounds: LatLngBounds(
-          LatLng(minLat, minLng),
-          LatLng(maxLat, maxLng),
-        ),
-        padding: const EdgeInsets.all(48),
-        maxZoom: 14,
-      );
+
+      // Approximate distance: if very far apart (>2 deg lat/lng), show midpoint
+      final latSpan = (maxLat - minLat).abs();
+      final lngSpan = (maxLng - minLng).abs();
+      if (latSpan > 3.0 || lngSpan > 3.0) {
+        // Show midpoint at zoom 7 so road details are still visible
+        final midLat = (minLat + maxLat) / 2;
+        final midLng = (minLng + maxLng) / 2;
+        cameraFit = CameraFit.coordinates(
+          coordinates: [LatLng(midLat, midLng)],
+          padding: const EdgeInsets.all(48),
+          maxZoom: 7,
+        );
+      } else {
+        cameraFit = CameraFit.bounds(
+          bounds: LatLngBounds(
+            LatLng(minLat, minLng),
+            LatLng(maxLat, maxLng),
+          ),
+          padding: const EdgeInsets.all(48),
+          maxZoom: 14,
+        );
+      }
     } else {
       cameraFit = CameraFit.coordinates(
         coordinates: [sourceLatLng],
@@ -143,9 +159,11 @@ class TripMapWidget extends StatelessWidget {
       ),
       children: [
         TileLayer(
+          // Tiles are proxied through our own backend — no CORS issues
           urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
           userAgentPackageName: 'com.triptracks.frontend',
           maxZoom: 19,
+          maxNativeZoom: 18,
         ),
         MarkerLayer(markers: markers),
       ],
