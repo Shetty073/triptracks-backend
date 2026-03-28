@@ -10,12 +10,29 @@ class CrewScreen extends ConsumerStatefulWidget {
   ConsumerState<CrewScreen> createState() => _CrewScreenState();
 }
 
-class _CrewScreenState extends ConsumerState<CrewScreen> {
+class _CrewScreenState extends ConsumerState<CrewScreen> with SingleTickerProviderStateMixin {
   final _searchController = TextEditingController();
   String _searchQuery = '';
+  late TabController _tabController;
+
+  @override
+  void initState() {
+    super.initState();
+    _tabController = TabController(length: 3, vsync: this);
+    _tabController.addListener(_onTabChanged);
+  }
+
+  void _onTabChanged() {
+    // Check if user changed to the first tab (My Crew)
+    if (_tabController.index == 0 && !_tabController.indexIsChanging) {
+      ref.invalidate(myCrewProvider);
+    }
+  }
 
   @override
   void dispose() {
+    _tabController.removeListener(_onTabChanged);
+    _tabController.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -24,15 +41,14 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('My Crew')),
-      body: DefaultTabController(
-        length: 3,
-        child: Column(
-          children: [
-            const TabBar(
+      body: Column(
+        children: [
+            TabBar(
+              controller: _tabController,
               labelColor: Colors.deepPurple,
               unselectedLabelColor: Colors.grey,
               indicatorColor: Colors.deepPurple,
-              tabs: [
+              tabs: const [
                 Tab(text: 'My Crew'),
                 Tab(text: 'Requests'),
                 Tab(text: 'Search'),
@@ -40,6 +56,7 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
             ),
             Expanded(
               child: TabBarView(
+                controller: _tabController,
                 children: [
                   ResponsiveCenter(child: _MyCrewList()),
                   ResponsiveCenter(child: _PendingRequestsList()),
@@ -55,7 +72,6 @@ class _CrewScreenState extends ConsumerState<CrewScreen> {
             ),
           ],
         ),
-      ),
     );
   }
 }

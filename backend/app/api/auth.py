@@ -109,6 +109,16 @@ async def register(req: RegisterRequest):
     return user_db
 
 
+# ─── Username Availability ────────────────────────────────────────────────────
+
+@router.get("/check-username")
+async def check_username(username: str):
+    user_dict = await db.db["users"].find_one({"username": username})
+    if user_dict:
+        return {"available": False}
+    return {"available": True}
+
+
 # ─── Login ────────────────────────────────────────────────────────────────────
 
 @router.post("/login", response_model=Token)

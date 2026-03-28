@@ -102,4 +102,10 @@ class AuthNotifier extends AsyncNotifier<User?> {
     await _storage.delete(key: 'refresh_token');
     state = const AsyncValue.data(null);
   }
+
+  /// Checks if a username is available.
+  Future<bool> checkUsername(String username) async {
+    final response = await _dio.get('/api/auth/check-username', queryParameters: {'username': username});
+    return response.data['available'] == true;
+  }
 }
