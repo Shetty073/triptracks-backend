@@ -11,6 +11,17 @@ final tripDetailsProvider = FutureProvider.family<Trip, String>((
   return Trip.fromJson(response.data);
 });
 
+/// Returns a {userId: displayName} map for all trip participants.
+final tripParticipantNamesProvider =
+    FutureProvider.family<Map<String, String>, String>((
+  ref,
+  tripId,
+) async {
+  final dio = ref.watch(dioProvider);
+  final response = await dio.get('/api/trips/$tripId/participants/names');
+  return Map<String, String>.from(response.data as Map);
+});
+
 class TripStatusNotifier {
   final Ref ref;
   TripStatusNotifier(this.ref);

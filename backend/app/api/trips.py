@@ -217,6 +217,22 @@ async def generate_trip_plan(req: PlanRequest, current_user: UserDB = Depends(ge
 
     return plan
 
+@router.get("/{trip_id}/participants/names")
+async def get_participant_names(trip_id: str, current_user: UserDB = Depends(get_current_user)):
+    """Returns a map of {user_id: display_name} for all trip participants."""
+    trip_data = await db.db["trips"].find_one({"id": trip_id})
+    if not trip_data:
+        raise HTTPException(status_code=404, detail="Trip not found")
+
+    participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
+    if trip_data.get("organizer_id") not in participant_ids:
+        participant_ids.append(trip_data["organizer_id"])
+
+    cursor = db.db["users"].find({"id": {"$in": participant_ids}})
+    user_docs = await cursor.to_list(length=None)
+    names = {u["id"]: u.get("full_name") or u.get("username") for u in user_docs}
+    return names
+
 # ─── WILDCARD ROUTES (must come AFTER all literal routes) ────────────────────
 
 @router.get("/{trip_id}", response_model=TripDB)
@@ -356,7 +372,8 @@ async def get_trip_balances(trip_id: str, current_user: UserDB = Depends(get_cur
             for uid in participants:
                 balances[uid] -= split_amount
 
-    users_cursor = db.db["users"].find({"id": {"$in": list(balances.keys())}})
+    # Always fetch names for ALL participants, even if they have no expenses yet
+    users_cursor = db.db["users"].find({"id": {"$in": participants}})
     user_docs = await users_cursor.to_list(length=None)
     user_names = {u["id"]: u.get("full_name") or u.get("username") for u in user_docs}
     

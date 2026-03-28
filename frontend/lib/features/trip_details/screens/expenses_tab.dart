@@ -52,16 +52,24 @@ class _TransactionsView extends ConsumerStatefulWidget {
 }
 
 class _TransactionsViewState extends ConsumerState<_TransactionsView> {
-  void _showAddExpenseDialog(Map<String, dynamic> userNames) {
+  void _showAddExpenseDialog(Map<String, String> userNames) {
+    final currency = ref.read(profileSettingsProvider).value?.currency;
+    final symbol = CurrencyHelper.symbol(currency);
     showDialog(
       context: context,
-      builder: (context) => _AddExpenseDialog(trip: widget.trip, userNames: userNames),
+      builder: (context) => _AddExpenseDialog(
+        trip: widget.trip,
+        userNames: userNames,
+        currencySymbol: symbol,
+      ),
     );
   }
 
   @override
   Widget build(BuildContext context) {
     final balancesAsync = ref.watch(tripBalancesProvider(widget.trip.id));
+    final namesAsync = ref.watch(tripParticipantNamesProvider(widget.trip.id));
+    final userNames = namesAsync.value ?? {};
     double totalExpenses = widget.trip.expenses.fold(0.0, (sum, item) => sum + item.amount);
 
     return ResponsiveCenter(
@@ -79,10 +87,7 @@ class _TransactionsViewState extends ConsumerState<_TransactionsView> {
                 ElevatedButton.icon(
                   icon: const Icon(Icons.add),
                   label: const Text('Add Expense'),
-                  onPressed: balancesAsync.maybeWhen(
-                    data: (data) => () => _showAddExpenseDialog(data['user_names'] ?? {}),
-                    orElse: () => null,
-                  ),
+                  onPressed: () => _showAddExpenseDialog(userNames),
                 ),
               ],
             ),
@@ -125,8 +130,13 @@ class _TransactionsViewState extends ConsumerState<_TransactionsView> {
 
 class _AddExpenseDialog extends ConsumerStatefulWidget {
   final Trip trip;
-  final Map<String, dynamic> userNames;
-  const _AddExpenseDialog({required this.trip, required this.userNames});
+  final Map<String, String> userNames;
+  final String currencySymbol;
+  const _AddExpenseDialog({
+    required this.trip,
+    required this.userNames,
+    required this.currencySymbol,
+  });
 
   @override
   ConsumerState<_AddExpenseDialog> createState() => _AddExpenseDialogState();
@@ -245,12 +255,17 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
             TextField(
               controller: _descController,
               decoration: const InputDecoration(labelText: 'Description (e.g. Gas, Lunch)'),
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 12),
             TextField(
               controller: _amountController,
-              decoration: const InputDecoration(labelText: 'Total Amount', prefixText: '\$'),
+              decoration: InputDecoration(
+                labelText: 'Total Amount',
+                prefixText: widget.currencySymbol,
+              ),
               keyboardType: TextInputType.number,
+              onChanged: (_) => setState(() {}),
             ),
             const SizedBox(height: 24),
             const Text('Split Strategy:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -270,7 +285,8 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
               const SizedBox(height: 16),
               const Text('Split among:', style: TextStyle(fontWeight: FontWeight.w600)),
               ..._userIds.map((uid) {
-                final name = widget.userNames[uid]?.toString() ?? uid.substring(0, 8);
+                final name = widget.userNames[uid]?.toString();
+                if (name == null || name.isEmpty) return const SizedBox.shrink();
                 return CheckboxListTile(
                   dense: true,
                   contentPadding: EdgeInsets.zero,
@@ -291,7 +307,8 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
             if (_splitType != 'Equal') ...[
               const SizedBox(height: 16),
               ..._userIds.map((uid) {
-                final name = widget.userNames[uid]?.toString() ?? uid.substring(0, 8);
+                final name = widget.userNames[uid]?.toString();
+                if (name == null || name.isEmpty) return const SizedBox.shrink();
                 return Padding(
                   padding: const EdgeInsets.only(bottom: 8.0),
                   child: Row(
@@ -318,7 +335,15 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
       ),
       actions: [
         TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-        ElevatedButton(onPressed: _submit, child: const Text('Add')),
+        ElevatedButton(
+          // Only enabled when description and valid amount are filled
+          onPressed: _descController.text.trim().isNotEmpty &&
+                  (double.tryParse(_amountController.text) ?? 0) > 0 &&
+                  (_splitType != 'Equal' || _selectedUserIds.isNotEmpty)
+              ? _submit
+              : null,
+          child: const Text('Add'),
+        ),
       ],
     );
   }
