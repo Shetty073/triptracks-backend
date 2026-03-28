@@ -1,3 +1,61 @@
+class VehicleFuelCost {
+  final String vehicleId;
+  final String vehicleName;
+  final int passengers;
+  final double totalFuelCost;
+  final double fuelCostPerPerson;
+
+  VehicleFuelCost({
+    required this.vehicleId,
+    required this.vehicleName,
+    required this.passengers,
+    required this.totalFuelCost,
+    required this.fuelCostPerPerson,
+  });
+
+  factory VehicleFuelCost.fromJson(Map<String, dynamic> json) {
+    return VehicleFuelCost(
+      vehicleId: json['vehicle_id'] ?? '',
+      vehicleName: json['vehicle_name'] ?? 'Vehicle',
+      passengers: json['passengers'] ?? 1,
+      totalFuelCost: (json['total_fuel_cost'] ?? 0.0).toDouble(),
+      fuelCostPerPerson: (json['fuel_cost_per_person'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
+class EstimatedCosts {
+  final List<VehicleFuelCost> vehicleFuelCosts;
+  final double totalFuelCost;
+  final double totalStayCost;
+  final double stayCostPerPerson;
+  final double totalFoodCost;
+  final double foodCostPerPerson;
+
+  EstimatedCosts({
+    required this.vehicleFuelCosts,
+    required this.totalFuelCost,
+    required this.totalStayCost,
+    required this.stayCostPerPerson,
+    required this.totalFoodCost,
+    required this.foodCostPerPerson,
+  });
+
+  factory EstimatedCosts.fromJson(Map<String, dynamic> json) {
+    return EstimatedCosts(
+      vehicleFuelCosts: (json['vehicle_fuel_costs'] as List?)
+              ?.map((e) => VehicleFuelCost.fromJson(e))
+              .toList() ??
+          [],
+      totalFuelCost: (json['total_fuel_cost'] ?? 0.0).toDouble(),
+      totalStayCost: (json['total_stay_cost'] ?? 0.0).toDouble(),
+      stayCostPerPerson: (json['stay_cost_per_person'] ?? 0.0).toDouble(),
+      totalFoodCost: (json['total_food_cost'] ?? 0.0).toDouble(),
+      foodCostPerPerson: (json['food_cost_per_person'] ?? 0.0).toDouble(),
+    );
+  }
+}
+
 class TripParticipant {
   final String userId;
   final bool isDriver;
@@ -89,6 +147,7 @@ class Trip {
   final List<Expense> expenses;
   final List<TripComment> comments;
   final List<String> photos;
+  final EstimatedCosts? estimatedCosts;
   final DateTime createdAt;
 
   Trip({
@@ -104,6 +163,7 @@ class Trip {
     required this.expenses,
     required this.comments,
     required this.photos,
+    this.estimatedCosts,
     required this.createdAt,
   });
 
@@ -133,6 +193,9 @@ class Trip {
               .toList() ??
           [],
       photos: (json['photos'] as List?)?.map((e) => e.toString()).toList() ?? [],
+      estimatedCosts: json['estimated_costs'] != null
+          ? EstimatedCosts.fromJson(json['estimated_costs'])
+          : null,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }

@@ -26,6 +26,21 @@ class Expense(BaseModel):
     splits: Dict[str, float] = {} # user_id -> explicit amount owed
     date: datetime = Field(default_factory=datetime.utcnow)
 
+class VehicleFuelCost(BaseModel):
+    vehicle_id: str
+    vehicle_name: str
+    passengers: int
+    total_fuel_cost: float
+    fuel_cost_per_person: float
+
+class EstimatedCosts(BaseModel):
+    vehicle_fuel_costs: List[VehicleFuelCost] = []
+    total_fuel_cost: float = 0.0
+    total_stay_cost: float = 0.0
+    stay_cost_per_person: float = 0.0
+    total_food_cost: float = 0.0
+    food_cost_per_person: float = 0.0
+
 class TripBase(BaseModel):
     title: str
     source: Location
@@ -49,5 +64,6 @@ class TripDB(TripBase):
     expenses: List[Expense] = []
     comments: List[dict] = [] # Keeping it simple for now -> [{user_id, text, timestamp}]
     photos: List[str] = [] # URLs to photos
+    estimated_costs: Optional[EstimatedCosts] = None
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

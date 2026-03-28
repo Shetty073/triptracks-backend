@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File
 from typing import List, Optional, Dict, Any
 import shutil
 import os
-from app.models.trip import TripDB, TripCreate, Location, Expense
+from app.models.trip import TripDB, TripCreate, Location, Expense, EstimatedCosts, VehicleFuelCost, Leg
 from app.models.user import UserDB
 from app.api.auth import get_current_user
 from app.core.database import db
@@ -24,6 +24,75 @@ async def create_trip(trip: TripCreate, current_user: UserDB = Depends(get_curre
         organizer_id=current_user.id,
         status="planned"
     )
+
+    avg_daily = 500.0
+    active_vehicles = {}
+    for p in trip_db.participants:
+        if p.vehicle_id:
+            if p.vehicle_id not in active_vehicles:
+                active_vehicles[p.vehicle_id] = {"count": 0, "mileage": 15.0, "name": "Vehicle"}
+            active_vehicles[p.vehicle_id]["count"] += 1
+            
+    participant_uids = [p.user_id for p in trip_db.participants]
+    if current_user.id not in participant_uids:
+        participant_uids.append(current_user.id)
+        
+    users_cursor = db.db["users"].find({"id": {"$in": participant_uids}})
+    all_users = await users_cursor.to_list(length=None)
+    
+    for u in all_users:
+        vehicles = u.get("profile_settings", {}).get("vehicles", [])
+        for v in vehicles:
+            vid = v.get("id")
+            if vid in active_vehicles:
+                active_vehicles[vid]["mileage"] = v.get("mileage_per_liter", 15.0)
+                active_vehicles[vid]["name"] = v.get("name") or v.get("type", "Vehicle")
+                if v.get("avg_distance_per_day", 0) > avg_daily:
+                    avg_daily = v.get("avg_distance_per_day")
+                    
+    plan = TripPlannerService.calculate_trip_itinerary(
+        source=trip_db.source,
+        destination=trip_db.destination,
+        stops=trip_db.stops,
+        avg_daily_dist=avg_daily,
+    )
+    
+    trip_db.total_distance_km = plan["total_distance_km"]
+    trip_db.total_estimated_time_mins = plan["total_estimated_time_mins"]
+    trip_db.legs = plan.get("legs", [])
+    days = plan.get("estimated_days", 1)
+    
+    total_pax = len(trip_db.participants) if trip_db.participants else 1
+    est_costs = EstimatedCosts()
+    
+    for vid, vdata in active_vehicles.items():
+        liters = trip_db.total_distance_km / (vdata["mileage"] if vdata["mileage"] > 0 else 1)
+        cost = liters * trip_db.fuel_cost_per_unit
+        pax_in_car = vdata["count"] or 1
+        cost_per_person = cost / pax_in_car
+        
+        est_costs.total_fuel_cost += cost
+        est_costs.vehicle_fuel_costs.append(VehicleFuelCost(
+            vehicle_id=vid,
+            vehicle_name=vdata["name"],
+            passengers=pax_in_car,
+            total_fuel_cost=round(cost, 2),
+            fuel_cost_per_person=round(cost_per_person, 2)
+        ))
+        
+    est_costs.total_fuel_cost = round(est_costs.total_fuel_cost, 2)
+    
+    stay_cost = current_user.profile_settings.avg_nightly_stay_expense * max(0, days - 1)
+    food_cost = current_user.profile_settings.avg_daily_food_expense * days
+    
+    est_costs.stay_cost_per_person = round(stay_cost, 2)
+    est_costs.total_stay_cost = round(stay_cost * total_pax, 2)
+    
+    est_costs.food_cost_per_person = round(food_cost, 2)
+    est_costs.total_food_cost = round(food_cost * total_pax, 2)
+    
+    trip_db.estimated_costs = est_costs
+
     await db.db["trips"].insert_one(trip_db.dict())
     return trip_db
 
