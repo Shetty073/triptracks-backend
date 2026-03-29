@@ -112,36 +112,34 @@ class TripMapWidget extends StatelessWidget {
         ),
     ];
 
-    // Compute a camera fit that shows both markers with padding
-    final CameraFit cameraFit;
-    if (destLatLng != null) {
-      final minLat = min(srcLat, destLatLng.latitude);
-      final maxLat = max(srcLat, destLatLng.latitude);
-      final minLng = min(srcLng, destLatLng.longitude);
-      final maxLng = max(srcLng, destLatLng.longitude);
+    final List<LatLng> allPoints = [sourceLatLng];
+    if (destLatLng != null) allPoints.add(destLatLng);
 
-      // Approximate distance: if very far apart (>2 deg lat/lng), show midpoint
-      final latSpan = (maxLat - minLat).abs();
-      final lngSpan = (maxLng - minLng).abs();
-      if (latSpan > 3.0 || lngSpan > 3.0) {
-        // Show midpoint at zoom 7 so road details are still visible
-        final midLat = (minLat + maxLat) / 2;
-        final midLng = (minLng + maxLng) / 2;
-        cameraFit = CameraFit.coordinates(
-          coordinates: [LatLng(midLat, midLng)],
-          padding: const EdgeInsets.all(48),
-          maxZoom: 7,
-        );
-      } else {
-        cameraFit = CameraFit.bounds(
-          bounds: LatLngBounds(
-            LatLng(minLat, minLng),
-            LatLng(maxLat, maxLng),
-          ),
-          padding: const EdgeInsets.all(48),
-          maxZoom: 14,
-        );
+    // Add stops if any exist
+    if (trip.stops != null) {
+      for (final stop in trip.stops) {
+        if (stop['lat'] != null && stop['lng'] != null) {
+          final stopLatLng = LatLng((stop['lat'] as num).toDouble(), (stop['lng'] as num).toDouble());
+          allPoints.add(stopLatLng);
+          markers.add(
+            Marker(
+              point: stopLatLng,
+              width: 32,
+              height: 32,
+              alignment: Alignment.topCenter,
+              child: const Icon(Icons.place, color: Colors.orange, size: 28),
+            ),
+          );
+        }
       }
+    }
+
+    final CameraFit cameraFit;
+    if (allPoints.length > 1) {
+      cameraFit = CameraFit.coordinates(
+        coordinates: allPoints,
+        padding: const EdgeInsets.all(48),
+      );
     } else {
       cameraFit = CameraFit.coordinates(
         coordinates: [sourceLatLng],
