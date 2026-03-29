@@ -11,12 +11,26 @@ import 'package:triptracks/core/utils/currency_helper.dart';
 import 'package:triptracks/features/profile/providers/profile_provider.dart';
 import 'package:intl/intl.dart';
 
-class ExpensesTab extends ConsumerWidget {
+class ExpensesTab extends ConsumerStatefulWidget {
   final Trip trip;
   const ExpensesTab({super.key, required this.trip});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExpensesTab> createState() => _ExpensesTabState();
+}
+
+class _ExpensesTabState extends ConsumerState<ExpensesTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(tripBalancesProvider(widget.trip.id));
+      ref.invalidate(tripDetailsProvider(widget.trip.id));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Column(
@@ -32,8 +46,8 @@ class ExpensesTab extends ConsumerWidget {
           Expanded(
             child: TabBarView(
               children: [
-                _TransactionsView(trip: trip),
-                _BalancesView(trip: trip),
+                _TransactionsView(trip: widget.trip),
+                _BalancesView(trip: widget.trip),
               ],
             ),
           ),
@@ -235,6 +249,7 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense Added')));
         ref.invalidate(tripBalancesProvider(widget.trip.id));
+        ref.invalidate(tripDetailsProvider(widget.trip.id));
       }
     } catch (e) {
       if (context.mounted) {
@@ -390,6 +405,7 @@ class _BalancesView extends ConsumerWidget {
                         splits: { t['to_user_id']: amount.toDouble() },
                       );
                       ref.invalidate(tripBalancesProvider(trip.id));
+                      ref.invalidate(tripDetailsProvider(trip.id));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Debt marked as settled!')));
                       }
