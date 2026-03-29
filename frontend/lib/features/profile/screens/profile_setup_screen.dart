@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:frontend/features/profile/providers/profile_provider.dart';
-import 'package:frontend/core/auth_provider.dart';
-import 'package:frontend/core/constants.dart';
-import 'package:frontend/shared/widgets/responsive_center.dart';
-import 'package:frontend/core/utils/error_handler.dart';
+import 'package:triptracks/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/core/auth_provider.dart';
+import 'package:triptracks/core/constants.dart';
+import 'package:triptracks/shared/widgets/responsive_center.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 class ProfileSetupScreen extends ConsumerStatefulWidget {

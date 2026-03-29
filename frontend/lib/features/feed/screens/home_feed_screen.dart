@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/core/auth_provider.dart';
-import 'package:frontend/core/debouncer.dart';
-import 'package:frontend/features/profile/screens/profile_setup_screen.dart';
-import 'package:frontend/features/feed/providers/feed_provider.dart';
-import 'package:frontend/shared/widgets/trip_card.dart';
-import 'package:frontend/features/trips/screens/my_trips_screen.dart';
-import 'package:frontend/features/crew/screens/crew_screen.dart';
-import 'package:frontend/features/trip_details/screens/trip_details_screen.dart';
-import 'package:frontend/features/trips/providers/trips_provider.dart';
-import 'package:frontend/features/crew/providers/crew_provider.dart';
+import 'package:triptracks/core/auth_provider.dart';
+import 'package:triptracks/core/debouncer.dart';
+import 'package:triptracks/features/profile/screens/profile_setup_screen.dart';
+import 'package:triptracks/features/feed/providers/feed_provider.dart';
+import 'package:triptracks/shared/widgets/trip_card.dart';
+import 'package:triptracks/features/trips/screens/my_trips_screen.dart';
+import 'package:triptracks/features/crew/screens/crew_screen.dart';
+import 'package:triptracks/features/trip_details/screens/trip_details_screen.dart';
+import 'package:triptracks/features/trips/providers/trips_provider.dart';
+import 'package:triptracks/features/crew/providers/crew_provider.dart';
 
 class HomeFeedScreen extends ConsumerStatefulWidget {
   const HomeFeedScreen({super.key});

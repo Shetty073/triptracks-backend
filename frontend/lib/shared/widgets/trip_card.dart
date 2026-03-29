@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'package:frontend/models/trip.dart';
+import 'package:triptracks/models/trip.dart';
 import 'package:intl/intl.dart';
 
 class TripCard extends StatelessWidget {

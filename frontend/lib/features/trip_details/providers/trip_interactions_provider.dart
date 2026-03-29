@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import 'package:frontend/core/api_client.dart';
-import 'package:frontend/features/trip_details/providers/trip_details_provider.dart';
+import 'package:triptracks/core/api_client.dart';
+import 'package:triptracks/features/trip_details/providers/trip_details_provider.dart';
 
 class TripInteractionsNotifier {
   final Ref ref;

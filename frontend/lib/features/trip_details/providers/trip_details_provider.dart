@@ -1,6 +1,6 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/core/api_client.dart';
-import 'package:frontend/models/trip.dart';
+import 'package:triptracks/core/api_client.dart';
+import 'package:triptracks/models/trip.dart';
 
 final tripDetailsProvider = FutureProvider.family<Trip, String>((
   ref,

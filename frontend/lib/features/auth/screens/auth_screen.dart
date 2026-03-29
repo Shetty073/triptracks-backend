@@ -2,9 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:dio/dio.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/core/auth_provider.dart';
-import 'package:frontend/shared/widgets/responsive_center.dart';
-import 'package:frontend/core/utils/error_handler.dart';
+import 'package:triptracks/core/auth_provider.dart';
+import 'package:triptracks/shared/widgets/responsive_center.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
 
 /// Signup flows through 3 steps:
 ///   Step 0 — Enter email & send OTP

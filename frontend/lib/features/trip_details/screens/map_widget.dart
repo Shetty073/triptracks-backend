@@ -2,8 +2,8 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
-import 'package:frontend/models/trip.dart';
-import 'package:frontend/core/constants.dart';
+import 'package:triptracks/models/trip.dart';
+import 'package:triptracks/core/constants.dart';
 
 /// Wraps the map inside an ExpansionTile so tiles are only fetched when opened.
 class TripMapAccordion extends StatefulWidget {

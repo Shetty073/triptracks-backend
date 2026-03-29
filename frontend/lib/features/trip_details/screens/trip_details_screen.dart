@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/features/trip_details/providers/trip_details_provider.dart';
-import 'package:frontend/models/trip.dart';
-import 'package:frontend/features/trip_details/screens/map_widget.dart';
-import 'package:frontend/features/trip_details/screens/expenses_tab.dart';
-import 'package:frontend/features/trip_details/screens/chat_tab.dart';
-import 'package:frontend/features/trip_details/screens/comments_tab.dart';
-import 'package:frontend/features/trip_details/screens/photos_tab.dart';
-import 'package:frontend/core/utils/error_handler.dart';
-import 'package:frontend/core/utils/currency_helper.dart';
-import 'package:frontend/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/features/trip_details/providers/trip_details_provider.dart';
+import 'package:triptracks/models/trip.dart';
+import 'package:triptracks/features/trip_details/screens/map_widget.dart';
+import 'package:triptracks/features/trip_details/screens/expenses_tab.dart';
+import 'package:triptracks/features/trip_details/screens/chat_tab.dart';
+import 'package:triptracks/features/trip_details/screens/comments_tab.dart';
+import 'package:triptracks/features/trip_details/screens/photos_tab.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
+import 'package:triptracks/core/utils/currency_helper.dart';
+import 'package:triptracks/features/profile/providers/profile_provider.dart';
 
 class TripDetailsScreen extends ConsumerWidget {
   final String tripId;

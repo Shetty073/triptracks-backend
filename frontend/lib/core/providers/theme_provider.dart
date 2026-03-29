@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/features/profile/providers/profile_provider.dart';
-import 'package:frontend/core/theme.dart';
+import 'package:triptracks/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/core/theme.dart';
 
 class ThemeState {
   final ThemeMode themeMode;

@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/features/crew/providers/crew_provider.dart';
-import 'package:frontend/shared/widgets/responsive_center.dart';
-import 'package:frontend/core/utils/error_handler.dart';
+import 'package:triptracks/features/crew/providers/crew_provider.dart';
+import 'package:triptracks/shared/widgets/responsive_center.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
 
 class CrewScreen extends ConsumerStatefulWidget {
   const CrewScreen({super.key});

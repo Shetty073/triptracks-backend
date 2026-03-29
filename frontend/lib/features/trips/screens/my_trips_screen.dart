@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/features/trips/providers/trips_provider.dart';
-import 'package:frontend/shared/widgets/trip_card.dart';
-import 'package:frontend/models/trip.dart';
-import 'package:frontend/features/trip_details/screens/trip_details_screen.dart';
-import 'package:frontend/features/plan_trip/screens/plan_trip_screen.dart';
+import 'package:triptracks/features/trips/providers/trips_provider.dart';
+import 'package:triptracks/shared/widgets/trip_card.dart';
+import 'package:triptracks/models/trip.dart';
+import 'package:triptracks/features/trip_details/screens/trip_details_screen.dart';
+import 'package:triptracks/features/plan_trip/screens/plan_trip_screen.dart';
 
 class MyTripsScreen extends ConsumerStatefulWidget {
   const MyTripsScreen({super.key});
