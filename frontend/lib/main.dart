@@ -8,6 +8,8 @@ import 'package:frontend/core/providers/theme_provider.dart';
 
 import 'package:frontend/core/notification_service.dart';
 
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
+
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.instance.initialize();
@@ -23,6 +25,7 @@ class TripTracksApp extends ConsumerWidget {
     final themeState = ref.watch(themeProvider);
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'TripTracks',
       theme: TripTracksTheme.lightTheme(
         customPrimaryColor: themeState.accentColor,
