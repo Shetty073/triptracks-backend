@@ -4,6 +4,7 @@ from typing import List, Dict
 
 from app.services.cache import cache_service
 from app.models.trip import Location, Leg
+from app.core.logger import logger
 
 
 def _get_maps_client():
@@ -16,7 +17,7 @@ def _get_maps_client():
         provider = GeoapifyProvider(api_key=settings.GEOMAPS_API_KEY)
         return LocationClient(provider=provider)
     except Exception as e:
-        print(f"GeoMaps SDK init error: {e}")
+        logger.exception(f"GeoMaps SDK init error: {e}")
         return None
 
 
@@ -49,7 +50,7 @@ class TripPlannerService:
                         "lng": res.location.longitude,
                     })
             except Exception as e:
-                print(f"GeoMaps autocomplete error: {e}")
+                logger.exception(f"GeoMaps autocomplete error: {e}")
 
         # Fallback: deterministic hash-derived coords so different cities differ
         if not results:
@@ -86,7 +87,7 @@ class TripPlannerService:
                     estimated_time_mins=int(route.duration_minutes),
                 )
             except Exception as e:
-                print(f"GeoMaps route error: {e}")
+                logger.exception(f"GeoMaps route error: {e}")
 
         if not leg:
             dist_km = TripPlannerService._haversine(src.lat, src.lng, dest.lat, dest.lng)

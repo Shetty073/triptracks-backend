@@ -1,7 +1,7 @@
 from motor.motor_asyncio import AsyncIOMotorClient, AsyncIOMotorCollection
 from app.core.config import settings
 import certifi
-
+from app.core.logger import logger
 
 # ─── Transparent wrapper that strips MongoDB _id from all read results ────────
 
@@ -78,10 +78,10 @@ async def connect_to_mongo():
     )
     raw_db = db.client[settings.MONGODB_DB_NAME]
     db.db._db = raw_db
-    print(f"Connected to MongoDB at {settings.MONGODB_URL}")
+    logger.info(f"Connected to MongoDB at {settings.MONGODB_URL}")
 
 
 async def close_mongo_connection():
     if db.client:
         db.client.close()
-        print("Closed MongoDB connection")
+        logger.info("Closed MongoDB connection")
