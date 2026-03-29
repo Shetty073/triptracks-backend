@@ -10,6 +10,7 @@ import 'package:triptracks/features/trip_details/screens/photos_tab.dart';
 import 'package:triptracks/core/utils/error_handler.dart';
 import 'package:triptracks/core/utils/currency_helper.dart';
 import 'package:triptracks/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/core/auth_provider.dart';
 
 class TripDetailsScreen extends ConsumerWidget {
   final String tripId;
@@ -79,6 +80,9 @@ class _InfoTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(authStateProvider).value;
+    final isOrganizer = currentUser?.id == trip.organizerId;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -161,7 +165,7 @@ class _InfoTab extends ConsumerWidget {
         ],
 
         const SizedBox(height: 24),
-        if (trip.status == 'planned')
+        if (trip.status == 'planned' && isOrganizer)
           ElevatedButton(
             onPressed: () async {
               try {
@@ -204,7 +208,7 @@ class _InfoTab extends ConsumerWidget {
             },
             child: const Text('Start Trip'),
           ),
-        if (trip.status == 'active')
+        if (trip.status == 'active' && isOrganizer)
           ElevatedButton(
             onPressed: () async {
               try {
