@@ -8,6 +8,8 @@ from app.core.database import db
 from app.services.cache import cache_service
 import uuid
 from datetime import datetime, timezone
+from jose import jwt, JWTError
+from app.core.config import settings
 
 router = APIRouter()
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
@@ -138,6 +140,35 @@ async def login(form_data: OAuth2PasswordRequestForm = Depends()):
     return {"access_token": access_token, "refresh_token": refresh_token, "token_type": "bearer"}
 
 
+# ─── Refresh Token ────────────────────────────────────────────────────────────
+
+class RefreshRequest(BaseModel):
+    refresh_token: str
+
+@router.post("/refresh", response_model=Token)
+async def refresh_token(req: RefreshRequest):
+    credentials_exception = HTTPException(
+        status_code=status.HTTP_401_UNAUTHORIZED,
+        detail="Could not validate credentials",
+        headers={"WWW-Authenticate": "Bearer"},
+    )
+    try:
+        payload = jwt.decode(req.refresh_token, settings.SECRET_KEY, algorithms=[settings.ALGORITHM])
+        user_id: str = payload.get("sub")
+        if user_id is None:
+            raise credentials_exception
+    except JWTError:
+        raise credentials_exception
+
+    user = await db.db["users"].find_one({"id": user_id})
+    if user is None:
+        raise credentials_exception
+
+    access_token = create_access_token(data={"sub": user["id"]})
+    new_refresh_token = create_refresh_token(data={"sub": user["id"]})
+    return {"access_token": access_token, "refresh_token": new_refresh_token, "token_type": "bearer"}
+
+
 # ─── Auth Dependency ──────────────────────────────────────────────────────────
 
 async def get_current_user(token: str = Depends(oauth2_scheme)):
@@ -147,8 +178,7 @@ async def get_current_user_from_query(token: str):
     return await _get_user_from_token(token)
 
 async def _get_user_from_token(token: str):
-    from jose import jwt, JWTError
-    from app.core.config import settings
+
     credentials_exception = HTTPException(
         status_code=status.HTTP_401_UNAUTHORIZED,
         detail="Could not validate credentials",
