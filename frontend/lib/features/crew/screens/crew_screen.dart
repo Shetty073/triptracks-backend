@@ -158,6 +158,7 @@ class _SearchCrew extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final searchAsync = ref.watch(searchCrewProvider(query));
+    final myCrewIds = ref.watch(myCrewProvider).asData?.value.map((u) => u.id).toSet() ?? {};
 
     return Column(
       children: [
@@ -185,11 +186,17 @@ class _SearchCrew extends ConsumerWidget {
                 itemCount: results.length,
                 itemBuilder: (context, index) {
                   final user = results[index];
+                  final isFriend = myCrewIds.contains(user.id);
                   return ListTile(
                     leading: const CircleAvatar(child: Icon(Icons.person)),
                     title: Text(user.username),
                     subtitle: Text(user.email),
-                    trailing: OutlinedButton(
+                    trailing: isFriend 
+                      ? const Padding(
+                          padding: EdgeInsets.only(right: 16.0),
+                          child: Text('Added \u2713', style: TextStyle(color: Colors.green, fontWeight: FontWeight.bold)),
+                        )
+                      : OutlinedButton(
                       child: const Text('Add'),
                       onPressed: () async {
                         try {

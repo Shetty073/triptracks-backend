@@ -81,7 +81,7 @@ class TripAlbum(BaseModel):
 class TripDB(TripBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     organizer_id: str
-    status: str = "planned" # planned, in_progress, completed
+    status: str = "planned" # planned, active, completed
     expenses: List[Expense] = []
     comments: List[TripComment] = []
     photos: List[TripPhoto] = []

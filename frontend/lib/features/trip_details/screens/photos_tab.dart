@@ -110,7 +110,7 @@ class _PhotosTabState extends ConsumerState<PhotosTab> {
 
   @override
   Widget build(BuildContext context) {
-    final bool canUpload = widget.trip.status == 'in_progress' || widget.trip.status == 'completed';
+    final bool canUpload = widget.trip.status == 'active' || widget.trip.status == 'completed';
 
     // Group photos by album
     final Map<String, List<TripPhoto>> albumMap = {};

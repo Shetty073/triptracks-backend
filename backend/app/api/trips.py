@@ -19,9 +19,12 @@ from collections import defaultdict
 router = APIRouter()
 
 def _normalize_trip(trip_data: dict) -> dict:
-    """Helper to ensure legacy data (like string photo URLs) matches the new TripDB schema."""
+    """Helper to ensure legacy data matches the new TripDB schema."""
     if not trip_data:
         return trip_data
+        
+    if trip_data.get("status") == "in_progress":
+        trip_data["status"] = "active"
         
     # Standardize photos
     if "photos" in trip_data:
@@ -135,10 +138,9 @@ async def create_trip(trip: TripCreate, current_user: UserDB = Depends(get_curre
 async def get_user_trips(current_user: UserDB = Depends(get_current_user)):
     """
     Returns trips in categories:
-    - planned_by_me
-    - completed_by_me
-    - participant_active
-    - participant_completed
+    - active
+    - planned
+    - completed
     """
     all_trips_cursor = db.db["trips"].find({
         "$or": [
@@ -150,24 +152,19 @@ async def get_user_trips(current_user: UserDB = Depends(get_current_user)):
     trips = await all_trips_cursor.to_list(length=100)
     
     categorized = {
-        "planned_by_me": [],
-        "completed_by_me": [],
-        "participant_active": [],
-        "participant_completed": []
+        "active": [],
+        "planned": [],
+        "completed": []
     }
     
     for t in trips:
         trip = TripDB(**_normalize_trip(t))
-        if trip.organizer_id == current_user.id:
-            if trip.status == "completed":
-                categorized["completed_by_me"].append(trip)
-            else:
-                categorized["planned_by_me"].append(trip)
+        if trip.status == "completed":
+            categorized["completed"].append(trip)
+        elif trip.status == "active":
+            categorized["active"].append(trip)
         else:
-            if trip.status == "completed":
-                categorized["participant_completed"].append(trip)
-            else:
-                categorized["participant_active"].append(trip)
+            categorized["planned"].append(trip)
                 
     return categorized
 
@@ -468,7 +465,7 @@ async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = D
         all_users.append(current_user.id)
 
     active_trips_cursor = db.db["trips"].find({
-        "status": "in_progress",
+        "status": {"$in": ["in_progress", "active"]},
         "$or": [
             {"organizer_id": {"$in": all_users}},
             {"participants.user_id": {"$in": all_users}}
@@ -504,7 +501,7 @@ async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = D
             
     await db.db["trips"].update_one(
         {"id": trip_id},
-        {"$set": {"status": "in_progress", "start_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+        {"$set": {"status": "active", "start_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
     )
     
     updated_trip = await db.db["trips"].find_one({"id": trip_id})

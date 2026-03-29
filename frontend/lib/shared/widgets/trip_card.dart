@@ -8,6 +8,20 @@ class TripCard extends StatelessWidget {
 
   const TripCard({super.key, required this.trip, required this.onViewMore});
 
+  String _formatStatus(String status) {
+    if (status == 'in_progress' || status == 'active') return 'Active';
+    if (status == 'planned') return 'Planned';
+    if (status == 'completed') return 'Completed';
+    return status.toUpperCase();
+  }
+
+  Color _getStatusColor(String status) {
+    if (status == 'in_progress' || status == 'active') return Colors.green.shade600;
+    if (status == 'planned') return Colors.orange.shade600;
+    if (status == 'completed') return Colors.blueGrey.shade600;
+    return Colors.grey;
+  }
+
   @override
   Widget build(BuildContext context) {
     final sourceName = trip.source['name'] ?? 'Unknown Source';
@@ -22,25 +36,51 @@ class TripCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Container(
-            height: 120,
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Colors.deepPurple.shade300,
-                  Colors.deepPurple.shade700,
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+          Stack(
+            children: [
+              Container(
+                height: 120,
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    colors: [
+                      Colors.deepPurple.shade300,
+                      Colors.deepPurple.shade700,
+                    ],
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  ),
+                ),
+                child: const Center(
+                  child: Icon(
+                    Icons.terrain,
+                    color: Colors.white,
+                    size: 60,
+                  ),
+                ),
               ),
-            ),
-            child: const Center(
-              child: Icon(
-                Icons.terrain,
-                color: Colors.white,
-                size: 60,
-              ), // Placeholder for image
-            ),
+              Positioned(
+                top: 12,
+                right: 12,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: _getStatusColor(trip.status),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: const [
+                      BoxShadow(color: Colors.black26, blurRadius: 4, offset: Offset(0, 2))
+                    ],
+                  ),
+                  child: Text(
+                    _formatStatus(trip.status),
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontWeight: FontWeight.bold,
+                      fontSize: 12,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
           Padding(
             padding: const EdgeInsets.all(16.0),

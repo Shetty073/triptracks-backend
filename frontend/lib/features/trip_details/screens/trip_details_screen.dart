@@ -89,7 +89,7 @@ class _InfoTab extends ConsumerWidget {
         Text(
           'Status: ${trip.status.toUpperCase()}',
           style: TextStyle(
-            color: trip.status == 'in_progress' ? Colors.green : Colors.grey,
+            color: trip.status == 'active' ? Colors.green : Colors.grey,
           ),
         ),
         const SizedBox(height: 16),
@@ -204,7 +204,7 @@ class _InfoTab extends ConsumerWidget {
             },
             child: const Text('Start Trip'),
           ),
-        if (trip.status == 'in_progress')
+        if (trip.status == 'active')
           ElevatedButton(
             onPressed: () async {
               try {

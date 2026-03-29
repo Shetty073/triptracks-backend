@@ -3,30 +3,25 @@ import 'package:triptracks/core/api_client.dart';
 import 'package:triptracks/models/trip.dart';
 
 class CategorizedTrips {
-  final List<Trip> plannedByMe;
-  final List<Trip> completedByMe;
-  final List<Trip> participantActive;
-  final List<Trip> participantCompleted;
+  final List<Trip> active;
+  final List<Trip> planned;
+  final List<Trip> completed;
 
   CategorizedTrips({
-    required this.plannedByMe,
-    required this.completedByMe,
-    required this.participantActive,
-    required this.participantCompleted,
+    required this.active,
+    required this.planned,
+    required this.completed,
   });
 
   factory CategorizedTrips.fromJson(Map<String, dynamic> json) {
     return CategorizedTrips(
-      plannedByMe: (json['planned_by_me'] as List)
+      active: (json['active'] as List)
           .map((t) => Trip.fromJson(t))
           .toList(),
-      completedByMe: (json['completed_by_me'] as List)
+      planned: (json['planned'] as List)
           .map((t) => Trip.fromJson(t))
           .toList(),
-      participantActive: (json['participant_active'] as List)
-          .map((t) => Trip.fromJson(t))
-          .toList(),
-      participantCompleted: (json['participant_completed'] as List)
+      completed: (json['completed'] as List)
           .map((t) => Trip.fromJson(t))
           .toList(),
     );
