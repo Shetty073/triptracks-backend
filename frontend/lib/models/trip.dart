@@ -198,6 +198,7 @@ class Trip {
   final int totalEstimatedTimeMins;
   final Map<String, dynamic> source;
   final Map<String, dynamic> destination;
+  final List<Map<String, dynamic>> stops;
   final List<TripParticipant> participants;
   final List<Expense> expenses;
   final List<TripComment> comments;
@@ -218,6 +219,7 @@ class Trip {
     required this.totalEstimatedTimeMins,
     required this.source,
     required this.destination,
+    required this.stops,
     required this.participants,
     required this.expenses,
     required this.comments,
@@ -240,6 +242,10 @@ class Trip {
       totalEstimatedTimeMins: json['total_estimated_time_mins'] ?? 0,
       source: json['source'] ?? {},
       destination: json['destination'] ?? {},
+      stops: (json['stops'] as List?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          [],
       participants:
           (json['participants'] as List?)
               ?.map((e) => TripParticipant.fromJson(e))
