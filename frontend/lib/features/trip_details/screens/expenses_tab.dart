@@ -2,21 +2,35 @@
 
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/models/trip.dart';
-import 'package:frontend/features/trip_details/providers/trip_interactions_provider.dart';
-import 'package:frontend/features/trip_details/providers/trip_details_provider.dart';
-import 'package:frontend/shared/widgets/responsive_center.dart';
-import 'package:frontend/core/utils/error_handler.dart';
-import 'package:frontend/core/utils/currency_helper.dart';
-import 'package:frontend/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/models/trip.dart';
+import 'package:triptracks/features/trip_details/providers/trip_interactions_provider.dart';
+import 'package:triptracks/features/trip_details/providers/trip_details_provider.dart';
+import 'package:triptracks/shared/widgets/responsive_center.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
+import 'package:triptracks/core/utils/currency_helper.dart';
+import 'package:triptracks/features/profile/providers/profile_provider.dart';
 import 'package:intl/intl.dart';
 
-class ExpensesTab extends ConsumerWidget {
+class ExpensesTab extends ConsumerStatefulWidget {
   final Trip trip;
   const ExpensesTab({super.key, required this.trip});
 
   @override
-  Widget build(BuildContext context, WidgetRef ref) {
+  ConsumerState<ExpensesTab> createState() => _ExpensesTabState();
+}
+
+class _ExpensesTabState extends ConsumerState<ExpensesTab> {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      ref.invalidate(tripBalancesProvider(widget.trip.id));
+      ref.invalidate(tripDetailsProvider(widget.trip.id));
+    });
+  }
+
+  @override
+  Widget build(BuildContext context) {
     return DefaultTabController(
       length: 2,
       child: Column(
@@ -32,8 +46,8 @@ class ExpensesTab extends ConsumerWidget {
           Expanded(
             child: TabBarView(
               children: [
-                _TransactionsView(trip: trip),
-                _BalancesView(trip: trip),
+                _TransactionsView(trip: widget.trip),
+                _BalancesView(trip: widget.trip),
               ],
             ),
           ),
@@ -105,10 +119,21 @@ class _TransactionsViewState extends ConsumerState<_TransactionsView> {
                         data: (d) => (d['user_names'] as Map)[expense.paidBy] ?? expense.paidBy,
                         orElse: () => expense.paidBy,
                       );
+                      IconData _getCategoryIcon(String category) {
+                        switch (category.toLowerCase()) {
+                          case 'food': return Icons.restaurant;
+                          case 'fuel': return Icons.local_gas_station;
+                          case 'accommodation': return Icons.hotel;
+                          case 'miscellaneous': return Icons.category;
+                          case 'settlement': return Icons.payments;
+                          default: return Icons.receipt;
+                        }
+                      }
+
                       return ListTile(
-                        leading: const CircleAvatar(
+                        leading: CircleAvatar(
                           backgroundColor: Colors.deepPurple,
-                          child: Icon(Icons.receipt, color: Colors.white),
+                          child: Icon(_getCategoryIcon(expense.category), color: Colors.white),
                         ),
                         title: Text(expense.description),
                         subtitle: Text(
@@ -146,6 +171,7 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
   final _descController = TextEditingController();
   final _amountController = TextEditingController();
   String _splitType = 'Equal'; // 'Equal', 'Amount', 'Percent'
+  String _selectedCategory = 'Food';
 
   // controllers for explicit amounts/percents per user
   final Map<String, TextEditingController> _splitControllers = {};
@@ -229,12 +255,14 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
         widget.trip.id,
         desc,
         amount,
+        _selectedCategory,
         splits: splits,
       );
       if (context.mounted) {
         Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Expense Added')));
         ref.invalidate(tripBalancesProvider(widget.trip.id));
+        ref.invalidate(tripDetailsProvider(widget.trip.id));
       }
     } catch (e) {
       if (context.mounted) {
@@ -266,6 +294,17 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: const InputDecoration(labelText: 'Category'),
+              items: ['Food', 'Fuel', 'Accommodation', 'Miscellaneous']
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedCategory = val);
+              },
             ),
             const SizedBox(height: 24),
             const Text('Split Strategy:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -387,9 +426,11 @@ class _BalancesView extends ConsumerWidget {
                         trip.id,
                         'Settled up (\u{1F4B8} Payment to ${t['to_name']})',
                         amount.toDouble(),
+                        'Settlement',
                         splits: { t['to_user_id']: amount.toDouble() },
                       );
                       ref.invalidate(tripBalancesProvider(trip.id));
+                      ref.invalidate(tripDetailsProvider(trip.id));
                       if (context.mounted) {
                         ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Debt marked as settled!')));
                       }

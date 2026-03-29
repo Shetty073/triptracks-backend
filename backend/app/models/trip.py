@@ -21,6 +21,7 @@ class TripParticipant(BaseModel):
 class Expense(BaseModel):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     description: str
+    category: str = "Miscellaneous"
     amount: float
     paid_by: str # user_id
     splits: Dict[str, float] = {} # user_id -> explicit amount owed
@@ -81,11 +82,14 @@ class TripAlbum(BaseModel):
 class TripDB(TripBase):
     id: str = Field(default_factory=lambda: str(uuid.uuid4()))
     organizer_id: str
-    status: str = "planned" # planned, in_progress, completed
+    status: str = "planned" # planned, active, completed
     expenses: List[Expense] = []
     comments: List[TripComment] = []
     photos: List[TripPhoto] = []
     albums: List[TripAlbum] = []
     estimated_costs: Optional[EstimatedCosts] = None
+    road_condition: Optional[str] = None
+    description: Optional[str] = None
+    is_public: bool = False
     created_at: datetime = Field(default_factory=datetime.utcnow)
     updated_at: datetime = Field(default_factory=datetime.utcnow)

@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/features/trip_details/providers/trip_details_provider.dart';
-import 'package:frontend/models/trip.dart';
-import 'package:frontend/features/trip_details/screens/map_widget.dart';
-import 'package:frontend/features/trip_details/screens/expenses_tab.dart';
-import 'package:frontend/features/trip_details/screens/chat_tab.dart';
-import 'package:frontend/features/trip_details/screens/comments_tab.dart';
-import 'package:frontend/features/trip_details/screens/photos_tab.dart';
-import 'package:frontend/core/utils/error_handler.dart';
-import 'package:frontend/core/utils/currency_helper.dart';
-import 'package:frontend/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/features/trip_details/providers/trip_details_provider.dart';
+import 'package:triptracks/models/trip.dart';
+import 'package:triptracks/features/trip_details/screens/map_widget.dart';
+import 'package:triptracks/features/trip_details/screens/expenses_tab.dart';
+import 'package:triptracks/features/trip_details/screens/chat_tab.dart';
+import 'package:triptracks/features/trip_details/screens/comments_tab.dart';
+import 'package:triptracks/features/trip_details/screens/photos_tab.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
+import 'package:triptracks/core/utils/currency_helper.dart';
+import 'package:triptracks/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/core/auth_provider.dart';
 
 class TripDetailsScreen extends ConsumerWidget {
   final String tripId;
@@ -79,6 +80,9 @@ class _InfoTab extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final currentUser = ref.watch(authStateProvider).value;
+    final isOrganizer = currentUser?.id == trip.organizerId;
+
     return ListView(
       padding: const EdgeInsets.all(16),
       children: [
@@ -89,7 +93,7 @@ class _InfoTab extends ConsumerWidget {
         Text(
           'Status: ${trip.status.toUpperCase()}',
           style: TextStyle(
-            color: trip.status == 'in_progress' ? Colors.green : Colors.grey,
+            color: trip.status == 'active' ? Colors.green : Colors.grey,
           ),
         ),
         const SizedBox(height: 16),
@@ -161,7 +165,7 @@ class _InfoTab extends ConsumerWidget {
         ],
 
         const SizedBox(height: 24),
-        if (trip.status == 'planned')
+        if (trip.status == 'planned' && isOrganizer)
           ElevatedButton(
             onPressed: () async {
               try {
@@ -204,23 +208,90 @@ class _InfoTab extends ConsumerWidget {
             },
             child: const Text('Start Trip'),
           ),
-        if (trip.status == 'in_progress')
+        if (trip.status == 'active' && isOrganizer)
           ElevatedButton(
-            onPressed: () async {
-              try {
-                await ref.read(tripActionProvider).completeTrip(trip.id);
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(ErrorHandler.getMessage(e))),
-                  );
-                }
-              }
-            },
+            onPressed: () => _showCompleteTripDialog(context, ref),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Complete Trip'),
           ),
       ],
+    );
+  }
+
+  Future<void> _showCompleteTripDialog(BuildContext context, WidgetRef ref) async {
+    String roadCondition = 'Average';
+    String description = '';
+    bool isPublic = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Complete Trip'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: roadCondition,
+                  decoration: const InputDecoration(labelText: 'Road Condition'),
+                  items: ['Poor', 'Average', 'Good']
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => roadCondition = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Trip Description (Optional)'),
+                  maxLines: 3,
+                  onChanged: (val) => description = val,
+                ),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  title: const Text('Publish for public view'),
+                  subtitle: const Text('Others can see this in their feed.'),
+                  value: isPublic,
+                  onChanged: (val) {
+                    if (val != null) setState(() => isPublic = val);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await ref.read(tripActionProvider).completeTrip(
+                        trip.id,
+                        roadCondition: roadCondition.toLowerCase(),
+                        description: description.isNotEmpty ? description : null,
+                        isPublic: isPublic,
+                      );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip Completed!')));
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ErrorHandler.getMessage(e))));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('Complete'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

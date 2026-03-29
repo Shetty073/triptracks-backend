@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/models/trip.dart';
-import 'package:frontend/core/constants.dart';
-import 'package:frontend/features/trip_details/providers/trip_interactions_provider.dart';
-import 'package:frontend/core/utils/error_handler.dart';
+import 'package:triptracks/models/trip.dart';
+import 'package:triptracks/core/constants.dart';
+import 'package:triptracks/features/trip_details/providers/trip_interactions_provider.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:intl/intl.dart';
@@ -110,7 +110,7 @@ class _PhotosTabState extends ConsumerState<PhotosTab> {
 
   @override
   Widget build(BuildContext context) {
-    final bool canUpload = widget.trip.status == 'in_progress' || widget.trip.status == 'completed';
+    final bool canUpload = widget.trip.status == 'active' || widget.trip.status == 'completed';
 
     // Group photos by album
     final Map<String, List<TripPhoto>> albumMap = {};

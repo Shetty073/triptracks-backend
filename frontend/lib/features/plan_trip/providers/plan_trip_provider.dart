@@ -1,5 +1,5 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/core/api_client.dart';
+import 'package:triptracks/core/api_client.dart';
 
 // ─── Location Suggestion ─────────────────────────────────────────────────────
 

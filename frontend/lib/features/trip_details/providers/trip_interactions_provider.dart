@@ -1,7 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:dio/dio.dart';
-import 'package:frontend/core/api_client.dart';
-import 'package:frontend/features/trip_details/providers/trip_details_provider.dart';
+import 'package:triptracks/core/api_client.dart';
+import 'package:triptracks/features/trip_details/providers/trip_details_provider.dart';
 
 class TripInteractionsNotifier {
   final Ref ref;
@@ -10,13 +10,15 @@ class TripInteractionsNotifier {
   Future<void> addExpense(
     String tripId,
     String description,
-    double amount, {
+    double amount,
+    String category, {
     Map<String, double>? splits,
   }) async {
     final dio = ref.read(dioProvider);
     final data = <String, dynamic>{
       'description': description,
       'amount': amount,
+      'category': category,
       'paid_by': '', 
     };
     if (splits != null && splits.isNotEmpty) {

@@ -1,12 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/core/theme.dart';
-import 'package:frontend/features/auth/screens/auth_screen.dart';
-import 'package:frontend/core/auth_provider.dart';
-import 'package:frontend/features/feed/screens/home_feed_screen.dart';
-import 'package:frontend/core/providers/theme_provider.dart';
+import 'package:triptracks/core/theme.dart';
+import 'package:triptracks/features/auth/screens/auth_screen.dart';
+import 'package:triptracks/core/auth_provider.dart';
+import 'package:triptracks/features/feed/screens/home_feed_screen.dart';
+import 'package:triptracks/core/providers/theme_provider.dart';
 
-import 'package:frontend/core/notification_service.dart';
+import 'package:triptracks/core/notification_service.dart';
+
+final GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -23,6 +25,7 @@ class TripTracksApp extends ConsumerWidget {
     final themeState = ref.watch(themeProvider);
 
     return MaterialApp(
+      navigatorKey: navigatorKey,
       title: 'TripTracks',
       theme: TripTracksTheme.lightTheme(
         customPrimaryColor: themeState.accentColor,

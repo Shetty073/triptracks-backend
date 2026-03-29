@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/core/auth_provider.dart';
-import 'package:frontend/core/api_client.dart';
-import 'package:frontend/core/constants.dart';
-import 'package:frontend/core/notification_service.dart';
+import 'package:triptracks/core/auth_provider.dart';
+import 'package:triptracks/core/api_client.dart';
+import 'package:triptracks/core/constants.dart';
+import 'package:triptracks/core/notification_service.dart';
 import 'package:web_socket_channel/web_socket_channel.dart';
 import 'dart:convert';
 import 'package:intl/intl.dart';

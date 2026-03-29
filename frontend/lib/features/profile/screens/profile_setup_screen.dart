@@ -1,12 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:image_picker/image_picker.dart';
-import 'package:frontend/features/profile/providers/profile_provider.dart';
-import 'package:frontend/core/auth_provider.dart';
-import 'package:frontend/core/constants.dart';
-import 'package:frontend/shared/widgets/responsive_center.dart';
-import 'package:frontend/core/utils/error_handler.dart';
-
+import 'package:triptracks/features/profile/providers/profile_provider.dart';
+import 'package:triptracks/core/auth_provider.dart';
+import 'package:triptracks/core/constants.dart';
+import 'package:triptracks/shared/widgets/responsive_center.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
+import 'package:package_info_plus/package_info_plus.dart';
+import 'package:url_launcher/url_launcher.dart';
 class ProfileSetupScreen extends ConsumerStatefulWidget {
   const ProfileSetupScreen({super.key});
 
@@ -192,9 +193,19 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
     final settingsAsync = ref.watch(profileSettingsProvider);
     final user = ref.watch(authStateProvider).value;
 
-    return Scaffold(
-      appBar: AppBar(title: const Text('Profile Setup')),
-      body: settingsAsync.when(
+    return DefaultTabController(
+      length: 2,
+      child: Scaffold(
+        appBar: AppBar(
+          title: const Text('Profile Setup'),
+          bottom: const TabBar(
+            tabs: [
+              Tab(text: 'Profile Settings'),
+              Tab(text: 'App Settings'),
+            ],
+          ),
+        ),
+        body: settingsAsync.when(
         data: (settings) {
           // Initialize controllers on first load if empty
           if (_foodExpenseController.text.isEmpty && user != null) {
@@ -211,9 +222,11 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
           }
 
           return ResponsiveCenter(
-            child: ListView(
-              padding: const EdgeInsets.all(16),
-            children: [
+            child: TabBarView(
+              children: [
+                ListView(
+                  padding: const EdgeInsets.all(16),
+                  children: [
               // --- Profile Photo ---
               Center(
                 child: Stack(
@@ -408,11 +421,71 @@ class _ProfileSetupScreenState extends ConsumerState<ProfileSetupScreen> {
                 ),
               ),
             ],
-          ));
+          ),
+          _buildAppSettingsTab(),
+        ],
+      ),
+    );
         },
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (err, st) => Center(child: Text('Error: $err')),
       ),
+    ));
+  }
+
+  Widget _buildAppSettingsTab() {
+    return ListView(
+      padding: const EdgeInsets.all(16),
+      children: [
+        FutureBuilder<PackageInfo>(
+          future: PackageInfo.fromPlatform(),
+          builder: (context, snapshot) {
+            final version = snapshot.data?.version ?? 'Unknown';
+            final build = snapshot.data?.buildNumber ?? '';
+            final versionString = build.isNotEmpty ? '$version+$build' : version;
+            return InkWell(
+              onDoubleTap: () {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Codename: Departure'),
+                    duration: Duration(seconds: 3),
+                  ),
+                );
+              },
+              child: ListTile(
+                leading: const Icon(Icons.info_outline),
+                title: const Text('App Version'),
+                subtitle: Text(versionString),
+              ),
+            );
+          },
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.person_outline),
+          title: const Text('Developed By'),
+          subtitle: const Text('Ashish Shetty'),
+          trailing: const Icon(Icons.open_in_new, size: 16),
+          onTap: () async {
+            final url = Uri.parse('https://ashishshetty.in');
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url);
+            }
+          },
+        ),
+        const Divider(),
+        ListTile(
+          leading: const Icon(Icons.privacy_tip_outlined),
+          title: const Text('Privacy Policy'),
+          trailing: const Icon(Icons.open_in_new, size: 16),
+          onTap: () async {
+            final url = Uri.parse('https://ashishshetty.in/privacy');
+            if (await canLaunchUrl(url)) {
+              await launchUrl(url);
+            }
+          },
+        ),
+      ],
     );
   }
 

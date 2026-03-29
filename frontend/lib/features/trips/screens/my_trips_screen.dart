@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/features/trips/providers/trips_provider.dart';
-import 'package:frontend/shared/widgets/trip_card.dart';
-import 'package:frontend/models/trip.dart';
-import 'package:frontend/features/trip_details/screens/trip_details_screen.dart';
-import 'package:frontend/features/plan_trip/screens/plan_trip_screen.dart';
+import 'package:triptracks/features/trips/providers/trips_provider.dart';
+import 'package:triptracks/shared/widgets/trip_card.dart';
+import 'package:triptracks/models/trip.dart';
+import 'package:triptracks/features/trip_details/screens/trip_details_screen.dart';
+import 'package:triptracks/features/plan_trip/screens/plan_trip_screen.dart';
 
 class MyTripsScreen extends ConsumerStatefulWidget {
   const MyTripsScreen({super.key});
@@ -20,7 +20,7 @@ class _MyTripsScreenState extends ConsumerState<MyTripsScreen>
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 4, vsync: this);
+    _tabController = TabController(length: 3, vsync: this);
     _tabController.addListener(_handleTabSelection);
   }
 
@@ -49,10 +49,9 @@ class _MyTripsScreenState extends ConsumerState<MyTripsScreen>
         unselectedLabelColor: Colors.grey,
         indicatorColor: Colors.deepPurple,
         tabs: const [
-          Tab(text: "Planned (Me)"),
-          Tab(text: "Completed (Me)"),
-          Tab(text: "Active (Participant)"),
-          Tab(text: "Completed (Participant)"),
+          Tab(text: "Active"),
+          Tab(text: "Planned"),
+          Tab(text: "Completed"),
         ],
       ),
         floatingActionButton: FloatingActionButton.extended(
@@ -71,20 +70,16 @@ class _MyTripsScreenState extends ConsumerState<MyTripsScreen>
               controller: _tabController,
               children: [
                 _TripList(
-                  trips: categories.plannedByMe,
-                  label: "You haven't planned any trips yet",
+                  trips: categories.active,
+                  label: "You don't have any active trips right now",
                 ),
                 _TripList(
-                  trips: categories.completedByMe,
-                  label: "You have no completed trips",
+                  trips: categories.planned,
+                  label: "You don't have any planned trips yet",
                 ),
                 _TripList(
-                  trips: categories.participantActive,
-                  label: "You are not participating in active trips",
-                ),
-                _TripList(
-                  trips: categories.participantCompleted,
-                  label: "No completed trips as participant",
+                  trips: categories.completed,
+                  label: "You haven't completed any trips yet",
                 ),
               ],
             );

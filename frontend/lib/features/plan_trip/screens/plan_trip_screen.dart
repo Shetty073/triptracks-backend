@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:frontend/core/debouncer.dart';
-import 'package:frontend/features/plan_trip/providers/plan_trip_provider.dart';
-import 'package:frontend/features/trips/providers/trips_provider.dart';
-import 'package:frontend/shared/widgets/responsive_center.dart';
-import 'package:frontend/core/utils/error_handler.dart';
+import 'package:triptracks/core/debouncer.dart';
+import 'package:triptracks/features/plan_trip/providers/plan_trip_provider.dart';
+import 'package:triptracks/features/trips/providers/trips_provider.dart';
+import 'package:triptracks/shared/widgets/responsive_center.dart';
+import 'package:triptracks/core/utils/error_handler.dart';
 
 // ─── Main Screen ─────────────────────────────────────────────────────────────
 

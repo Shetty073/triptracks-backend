@@ -19,9 +19,12 @@ from collections import defaultdict
 router = APIRouter()
 
 def _normalize_trip(trip_data: dict) -> dict:
-    """Helper to ensure legacy data (like string photo URLs) matches the new TripDB schema."""
+    """Helper to ensure legacy data matches the new TripDB schema."""
     if not trip_data:
         return trip_data
+        
+    if trip_data.get("status") == "in_progress":
+        trip_data["status"] = "active"
         
     # Standardize photos
     if "photos" in trip_data:
@@ -135,10 +138,9 @@ async def create_trip(trip: TripCreate, current_user: UserDB = Depends(get_curre
 async def get_user_trips(current_user: UserDB = Depends(get_current_user)):
     """
     Returns trips in categories:
-    - planned_by_me
-    - completed_by_me
-    - participant_active
-    - participant_completed
+    - active
+    - planned
+    - completed
     """
     all_trips_cursor = db.db["trips"].find({
         "$or": [
@@ -150,31 +152,26 @@ async def get_user_trips(current_user: UserDB = Depends(get_current_user)):
     trips = await all_trips_cursor.to_list(length=100)
     
     categorized = {
-        "planned_by_me": [],
-        "completed_by_me": [],
-        "participant_active": [],
-        "participant_completed": []
+        "active": [],
+        "planned": [],
+        "completed": []
     }
     
     for t in trips:
         trip = TripDB(**_normalize_trip(t))
-        if trip.organizer_id == current_user.id:
-            if trip.status == "completed":
-                categorized["completed_by_me"].append(trip)
-            else:
-                categorized["planned_by_me"].append(trip)
+        if trip.status == "completed":
+            categorized["completed"].append(trip)
+        elif trip.status == "active":
+            categorized["active"].append(trip)
         else:
-            if trip.status == "completed":
-                categorized["participant_completed"].append(trip)
-            else:
-                categorized["participant_active"].append(trip)
+            categorized["planned"].append(trip)
                 
     return categorized
 
 @router.get("/feed/completed", response_model=List[TripDB])
 async def get_completed_trips_feed(search: Optional[str] = None, current_user: UserDB = Depends(get_current_user)):
-    """Home feed showing completed trips of others"""
-    query: Dict[str, Any] = {"status": "completed"}
+    """Home feed showing completed public trips"""
+    query: Dict[str, Any] = {"status": "completed", "is_public": True}
     
     if search:
         search_regex = {"$regex": search, "$options": "i"}
@@ -423,11 +420,12 @@ async def get_trip(trip_id: str, current_user: UserDB = Depends(get_current_user
     if not trip_data:
         raise HTTPException(status_code=404, detail="Trip not found")
         
-    # Anyone can view completed trips, otherwise only participants
-    if trip_data["status"] != "completed":
+    # Only participants can view, unless it's a completed public trip
+    is_completed_public = trip_data.get("status") == "completed" and trip_data.get("is_public", False)
+    if not is_completed_public:
         participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
         if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
-            raise HTTPException(status_code=403, detail="Not authorized to view this active trip")
+            raise HTTPException(status_code=403, detail="Not authorized to view this trip")
             
     # Normalize photos: convert legacy string URLs to TripPhoto objects
     if "photos" in trip_data:
@@ -468,7 +466,7 @@ async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = D
         all_users.append(current_user.id)
 
     active_trips_cursor = db.db["trips"].find({
-        "status": "in_progress",
+        "status": {"$in": ["in_progress", "active"]},
         "$or": [
             {"organizer_id": {"$in": all_users}},
             {"participants.user_id": {"$in": all_users}}
@@ -504,7 +502,7 @@ async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = D
             
     await db.db["trips"].update_one(
         {"id": trip_id},
-        {"$set": {"status": "in_progress", "start_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+        {"$set": {"status": "active", "start_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
     )
     
     updated_trip = await db.db["trips"].find_one({"id": trip_id})
@@ -527,8 +525,13 @@ async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = D
         
     return TripDB(**updated_trip)
 
+class CompleteTripRequest(BaseModel):
+    road_condition: Optional[str] = None
+    description: Optional[str] = None
+    is_public: bool = False
+
 @router.patch("/{trip_id}/complete", response_model=TripDB)
-async def complete_trip(trip_id: str, current_user: UserDB = Depends(get_current_user)):
+async def complete_trip(trip_id: str, payload: CompleteTripRequest, current_user: UserDB = Depends(get_current_user)):
     trip_data = await db.db["trips"].find_one({"id": trip_id})
     if not trip_data:
         raise HTTPException(status_code=404, detail="Trip not found")
@@ -538,7 +541,14 @@ async def complete_trip(trip_id: str, current_user: UserDB = Depends(get_current
         
     await db.db["trips"].update_one(
         {"id": trip_id},
-        {"$set": {"status": "completed", "end_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+        {"$set": {
+            "status": "completed", 
+            "end_date": datetime.utcnow(), 
+            "updated_at": datetime.utcnow(),
+            "road_condition": payload.road_condition,
+            "description": payload.description,
+            "is_public": payload.is_public
+        }}
     )
     
     updated_trip = await db.db["trips"].find_one({"id": trip_id})

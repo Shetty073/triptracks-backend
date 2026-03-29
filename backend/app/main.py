@@ -1,4 +1,4 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi.middleware.cors import CORSMiddleware
 import os
@@ -6,6 +6,7 @@ from contextlib import asynccontextmanager
 from app.core.database import connect_to_mongo, close_mongo_connection
 from app.api import auth, users, crew, trips
 from app.websockets import chat
+from app.core.logger import api_name_var, logger
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
@@ -25,6 +26,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+@app.middleware("http")
+async def add_api_name_context(request: Request, call_next):
+    api_name = request.url.path
+    if request.scope.get("route"):
+        # This resolves parametrized paths e.g. /api/users/{user_id}
+        api_name = getattr(request.scope["route"], "path", request.url.path)
+    
+    token = api_name_var.set(api_name)
+    try:
+        return await call_next(request)
+    finally:
+        api_name_var.reset(token)
 
 app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
 app.include_router(users.router, prefix="/api/users", tags=["users"])

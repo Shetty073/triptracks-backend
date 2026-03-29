@@ -79,6 +79,7 @@ class TripParticipant {
 class Expense {
   final String id;
   final String description;
+  final String category;
   final double amount;
   final String paidBy;
   final Map<String, double> splits;
@@ -87,6 +88,7 @@ class Expense {
   Expense({
     required this.id,
     required this.description,
+    required this.category,
     required this.amount,
     required this.paidBy,
     required this.splits,
@@ -100,6 +102,7 @@ class Expense {
     return Expense(
       id: json['id'] ?? '',
       description: json['description'] ?? '',
+      category: json['category'] ?? 'Miscellaneous',
       amount: (json['amount'] ?? 0.0).toDouble(),
       paidBy: json['paid_by'] ?? '',
       splits: mappedSplits,
@@ -195,12 +198,16 @@ class Trip {
   final int totalEstimatedTimeMins;
   final Map<String, dynamic> source;
   final Map<String, dynamic> destination;
+  final List<Map<String, dynamic>> stops;
   final List<TripParticipant> participants;
   final List<Expense> expenses;
   final List<TripComment> comments;
   final List<TripPhoto> photos;
   final List<TripAlbum> albums;
   final EstimatedCosts? estimatedCosts;
+  final String? roadCondition;
+  final String? description;
+  final bool isPublic;
   final DateTime createdAt;
 
   Trip({
@@ -212,12 +219,16 @@ class Trip {
     required this.totalEstimatedTimeMins,
     required this.source,
     required this.destination,
+    required this.stops,
     required this.participants,
     required this.expenses,
     required this.comments,
     required this.photos,
     required this.albums,
     this.estimatedCosts,
+    this.roadCondition,
+    this.description,
+    required this.isPublic,
     required this.createdAt,
   });
 
@@ -231,6 +242,10 @@ class Trip {
       totalEstimatedTimeMins: json['total_estimated_time_mins'] ?? 0,
       source: json['source'] ?? {},
       destination: json['destination'] ?? {},
+      stops: (json['stops'] as List?)
+              ?.map((e) => e as Map<String, dynamic>)
+              .toList() ??
+          [],
       participants:
           (json['participants'] as List?)
               ?.map((e) => TripParticipant.fromJson(e))
@@ -257,6 +272,9 @@ class Trip {
       estimatedCosts: json['estimated_costs'] != null
           ? EstimatedCosts.fromJson(json['estimated_costs'])
           : null,
+      roadCondition: json['road_condition'],
+      description: json['description'],
+      isPublic: json['is_public'] ?? false,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }
