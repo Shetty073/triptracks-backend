@@ -35,9 +35,18 @@ class TripStatusNotifier {
     ref.invalidate(tripDetailsProvider(tripId));
   }
 
-  Future<void> completeTrip(String tripId) async {
+  Future<void> completeTrip(
+    String tripId, {
+    String? roadCondition,
+    String? description,
+    bool isPublic = false,
+  }) async {
     final dio = ref.read(dioProvider);
-    await dio.patch('/api/trips/$tripId/complete');
+    await dio.patch('/api/trips/$tripId/complete', data: {
+      'road_condition': roadCondition,
+      'description': description,
+      'is_public': isPublic,
+    });
     ref.invalidate(tripDetailsProvider(tripId));
   }
 }

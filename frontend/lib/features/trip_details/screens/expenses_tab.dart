@@ -119,10 +119,21 @@ class _TransactionsViewState extends ConsumerState<_TransactionsView> {
                         data: (d) => (d['user_names'] as Map)[expense.paidBy] ?? expense.paidBy,
                         orElse: () => expense.paidBy,
                       );
+                      IconData _getCategoryIcon(String category) {
+                        switch (category.toLowerCase()) {
+                          case 'food': return Icons.restaurant;
+                          case 'fuel': return Icons.local_gas_station;
+                          case 'accommodation': return Icons.hotel;
+                          case 'miscellaneous': return Icons.category;
+                          case 'settlement': return Icons.payments;
+                          default: return Icons.receipt;
+                        }
+                      }
+
                       return ListTile(
-                        leading: const CircleAvatar(
+                        leading: CircleAvatar(
                           backgroundColor: Colors.deepPurple,
-                          child: Icon(Icons.receipt, color: Colors.white),
+                          child: Icon(_getCategoryIcon(expense.category), color: Colors.white),
                         ),
                         title: Text(expense.description),
                         subtitle: Text(
@@ -160,6 +171,7 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
   final _descController = TextEditingController();
   final _amountController = TextEditingController();
   String _splitType = 'Equal'; // 'Equal', 'Amount', 'Percent'
+  String _selectedCategory = 'Food';
 
   // controllers for explicit amounts/percents per user
   final Map<String, TextEditingController> _splitControllers = {};
@@ -243,6 +255,7 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
         widget.trip.id,
         desc,
         amount,
+        _selectedCategory,
         splits: splits,
       );
       if (context.mounted) {
@@ -281,6 +294,17 @@ class _AddExpenseDialogState extends ConsumerState<_AddExpenseDialog> {
               ),
               keyboardType: TextInputType.number,
               onChanged: (_) => setState(() {}),
+            ),
+            const SizedBox(height: 12),
+            DropdownButtonFormField<String>(
+              value: _selectedCategory,
+              decoration: const InputDecoration(labelText: 'Category'),
+              items: ['Food', 'Fuel', 'Accommodation', 'Miscellaneous']
+                  .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                  .toList(),
+              onChanged: (val) {
+                if (val != null) setState(() => _selectedCategory = val);
+              },
             ),
             const SizedBox(height: 24),
             const Text('Split Strategy:', style: TextStyle(fontWeight: FontWeight.bold)),
@@ -402,6 +426,7 @@ class _BalancesView extends ConsumerWidget {
                         trip.id,
                         'Settled up (\u{1F4B8} Payment to ${t['to_name']})',
                         amount.toDouble(),
+                        'Settlement',
                         splits: { t['to_user_id']: amount.toDouble() },
                       );
                       ref.invalidate(tripBalancesProvider(trip.id));

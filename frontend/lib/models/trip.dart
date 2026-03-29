@@ -79,6 +79,7 @@ class TripParticipant {
 class Expense {
   final String id;
   final String description;
+  final String category;
   final double amount;
   final String paidBy;
   final Map<String, double> splits;
@@ -87,6 +88,7 @@ class Expense {
   Expense({
     required this.id,
     required this.description,
+    required this.category,
     required this.amount,
     required this.paidBy,
     required this.splits,
@@ -100,6 +102,7 @@ class Expense {
     return Expense(
       id: json['id'] ?? '',
       description: json['description'] ?? '',
+      category: json['category'] ?? 'Miscellaneous',
       amount: (json['amount'] ?? 0.0).toDouble(),
       paidBy: json['paid_by'] ?? '',
       splits: mappedSplits,
@@ -201,6 +204,9 @@ class Trip {
   final List<TripPhoto> photos;
   final List<TripAlbum> albums;
   final EstimatedCosts? estimatedCosts;
+  final String? roadCondition;
+  final String? description;
+  final bool isPublic;
   final DateTime createdAt;
 
   Trip({
@@ -218,6 +224,9 @@ class Trip {
     required this.photos,
     required this.albums,
     this.estimatedCosts,
+    this.roadCondition,
+    this.description,
+    required this.isPublic,
     required this.createdAt,
   });
 
@@ -257,6 +266,9 @@ class Trip {
       estimatedCosts: json['estimated_costs'] != null
           ? EstimatedCosts.fromJson(json['estimated_costs'])
           : null,
+      roadCondition: json['road_condition'],
+      description: json['description'],
+      isPublic: json['is_public'] ?? false,
       createdAt: DateTime.tryParse(json['created_at'] ?? '') ?? DateTime.now(),
     );
   }

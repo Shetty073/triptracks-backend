@@ -10,13 +10,15 @@ class TripInteractionsNotifier {
   Future<void> addExpense(
     String tripId,
     String description,
-    double amount, {
+    double amount,
+    String category, {
     Map<String, double>? splits,
   }) async {
     final dio = ref.read(dioProvider);
     final data = <String, dynamic>{
       'description': description,
       'amount': amount,
+      'category': category,
       'paid_by': '', 
     };
     if (splits != null && splits.isNotEmpty) {

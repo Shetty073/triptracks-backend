@@ -170,8 +170,8 @@ async def get_user_trips(current_user: UserDB = Depends(get_current_user)):
 
 @router.get("/feed/completed", response_model=List[TripDB])
 async def get_completed_trips_feed(search: Optional[str] = None, current_user: UserDB = Depends(get_current_user)):
-    """Home feed showing completed trips of others"""
-    query: Dict[str, Any] = {"status": "completed"}
+    """Home feed showing completed public trips"""
+    query: Dict[str, Any] = {"status": "completed", "is_public": True}
     
     if search:
         search_regex = {"$regex": search, "$options": "i"}
@@ -420,11 +420,12 @@ async def get_trip(trip_id: str, current_user: UserDB = Depends(get_current_user
     if not trip_data:
         raise HTTPException(status_code=404, detail="Trip not found")
         
-    # Anyone can view completed trips, otherwise only participants
-    if trip_data["status"] != "completed":
+    # Only participants can view, unless it's a completed public trip
+    is_completed_public = trip_data.get("status") == "completed" and trip_data.get("is_public", False)
+    if not is_completed_public:
         participant_ids = [p["user_id"] for p in trip_data.get("participants", [])]
         if current_user.id != trip_data["organizer_id"] and current_user.id not in participant_ids:
-            raise HTTPException(status_code=403, detail="Not authorized to view this active trip")
+            raise HTTPException(status_code=403, detail="Not authorized to view this trip")
             
     # Normalize photos: convert legacy string URLs to TripPhoto objects
     if "photos" in trip_data:
@@ -524,8 +525,13 @@ async def start_trip(trip_id: str, force: bool = False, current_user: UserDB = D
         
     return TripDB(**updated_trip)
 
+class CompleteTripRequest(BaseModel):
+    road_condition: Optional[str] = None
+    description: Optional[str] = None
+    is_public: bool = False
+
 @router.patch("/{trip_id}/complete", response_model=TripDB)
-async def complete_trip(trip_id: str, current_user: UserDB = Depends(get_current_user)):
+async def complete_trip(trip_id: str, payload: CompleteTripRequest, current_user: UserDB = Depends(get_current_user)):
     trip_data = await db.db["trips"].find_one({"id": trip_id})
     if not trip_data:
         raise HTTPException(status_code=404, detail="Trip not found")
@@ -535,7 +541,14 @@ async def complete_trip(trip_id: str, current_user: UserDB = Depends(get_current
         
     await db.db["trips"].update_one(
         {"id": trip_id},
-        {"$set": {"status": "completed", "end_date": datetime.utcnow(), "updated_at": datetime.utcnow()}}
+        {"$set": {
+            "status": "completed", 
+            "end_date": datetime.utcnow(), 
+            "updated_at": datetime.utcnow(),
+            "road_condition": payload.road_condition,
+            "description": payload.description,
+            "is_public": payload.is_public
+        }}
     )
     
     updated_trip = await db.db["trips"].find_one({"id": trip_id})

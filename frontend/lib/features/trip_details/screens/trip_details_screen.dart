@@ -210,21 +210,88 @@ class _InfoTab extends ConsumerWidget {
           ),
         if (trip.status == 'active' && isOrganizer)
           ElevatedButton(
-            onPressed: () async {
-              try {
-                await ref.read(tripActionProvider).completeTrip(trip.id);
-              } catch (e) {
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text(ErrorHandler.getMessage(e))),
-                  );
-                }
-              }
-            },
+            onPressed: () => _showCompleteTripDialog(context, ref),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
             child: const Text('Complete Trip'),
           ),
       ],
+    );
+  }
+
+  Future<void> _showCompleteTripDialog(BuildContext context, WidgetRef ref) async {
+    String roadCondition = 'Average';
+    String description = '';
+    bool isPublic = false;
+
+    await showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setState) => AlertDialog(
+          title: const Text('Complete Trip'),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                DropdownButtonFormField<String>(
+                  value: roadCondition,
+                  decoration: const InputDecoration(labelText: 'Road Condition'),
+                  items: ['Poor', 'Average', 'Good']
+                      .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                      .toList(),
+                  onChanged: (val) {
+                    if (val != null) setState(() => roadCondition = val);
+                  },
+                ),
+                const SizedBox(height: 12),
+                TextFormField(
+                  decoration: const InputDecoration(labelText: 'Trip Description (Optional)'),
+                  maxLines: 3,
+                  onChanged: (val) => description = val,
+                ),
+                const SizedBox(height: 12),
+                CheckboxListTile(
+                  title: const Text('Publish for public view'),
+                  subtitle: const Text('Others can see this in their feed.'),
+                  value: isPublic,
+                  onChanged: (val) {
+                    if (val != null) setState(() => isPublic = val);
+                  },
+                  contentPadding: EdgeInsets.zero,
+                  controlAffinity: ListTileControlAffinity.leading,
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancel'),
+            ),
+            ElevatedButton(
+              onPressed: () async {
+                try {
+                  await ref.read(tripActionProvider).completeTrip(
+                        trip.id,
+                        roadCondition: roadCondition.toLowerCase(),
+                        description: description.isNotEmpty ? description : null,
+                        isPublic: isPublic,
+                      );
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Trip Completed!')));
+                  }
+                } catch (e) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(ErrorHandler.getMessage(e))));
+                  }
+                }
+              },
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.green),
+              child: const Text('Complete'),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }
